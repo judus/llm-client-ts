@@ -102,4 +102,10 @@ The runner persists a revision-checked checkpoint before invoking every executor
 
 `WorkflowRunStore` is the durable persistence port; `InMemoryWorkflowRunStore` is its defensive-copy reference implementation. Ordered events include the workflow name/version, stage identity, attempts, retries, approval boundaries, and terminal outcome. Active execution time, stage count, stage attempts, cancellation, and individual stage timeouts are all finite.
 
+## Artifacts
+
+`ArtifactStore` keeps binary content outside messages while `ArtifactRef` carries its stable ID, byte length, SHA-256 checksum, MIME type, creation time, and optional filename and JSON metadata. `BinarySource` can refer to that artifact ID from document, image, or audio content.
+
+`InMemoryArtifactStore` is the bounded reference implementation. It accepts bytes or an asynchronous byte source, enforces the byte limit while reading, validates MIME types and safe filenames, honors cancellation, and publishes an artifact only after the complete input has been checksummed. Reads return defensive copies. Applications can replace it with durable or encrypted storage behind the same contract.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.

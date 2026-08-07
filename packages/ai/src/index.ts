@@ -1,4 +1,5 @@
 export { AiClient } from './client.js';
+export { InMemoryArtifactStore } from './artifact-store.js';
 export { BoundedAgentRuntime } from './agent-runtime.js';
 export {
   ApprovalCoordinator,
@@ -20,6 +21,16 @@ export { addUsage } from './usage.js';
 export { validateModelRequest } from './validate-request.js';
 
 export type { CallOptions } from './call-options.js';
+export type {
+  Artifact,
+  ArtifactChecksum,
+  ArtifactRef,
+  ArtifactSource,
+  ArtifactStore,
+  ArtifactWriteOptions,
+  InMemoryArtifactStoreOptions,
+  PutArtifact,
+} from './artifact-store.js';
 export type {
   AgentDefinition,
   AgentResult,

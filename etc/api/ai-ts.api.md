@@ -224,6 +224,57 @@ export interface ApprovalStore {
 }
 
 // @public (undocumented)
+export interface Artifact extends ArtifactRef {
+    // (undocumented)
+    readonly bytes: Uint8Array;
+}
+
+// @public (undocumented)
+export interface ArtifactChecksum {
+    // (undocumented)
+    readonly algorithm: 'sha256';
+    // (undocumented)
+    readonly value: string;
+}
+
+// @public (undocumented)
+export interface ArtifactRef {
+    // (undocumented)
+    readonly byteLength: number;
+    // (undocumented)
+    readonly checksum: ArtifactChecksum;
+    // (undocumented)
+    readonly createdAt: string;
+    // (undocumented)
+    readonly filename?: string;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly metadata?: JsonObject;
+    // (undocumented)
+    readonly mimeType: string;
+}
+
+// @public (undocumented)
+export type ArtifactSource = AsyncIterable<Uint8Array> | Uint8Array;
+
+// @public (undocumented)
+export interface ArtifactStore {
+    // (undocumented)
+    delete(id: string): Promise<void>;
+    // (undocumented)
+    get(id: string): Promise<Artifact | undefined>;
+    // (undocumented)
+    put(input: PutArtifact, options?: ArtifactWriteOptions): Promise<ArtifactRef>;
+}
+
+// @public (undocumented)
+export interface ArtifactWriteOptions {
+    // (undocumented)
+    readonly signal?: AbortSignal;
+}
+
+// @public (undocumented)
 export interface AudioPart {
     // (undocumented)
     readonly channels?: number;
@@ -462,6 +513,27 @@ export class InMemoryApprovalStore implements ApprovalStore {
     decide(command: RecordApprovalDecision): Promise<ApprovalRequest>;
     // (undocumented)
     get(id: string): Promise<ApprovalRequest | undefined>;
+}
+
+// @public
+export class InMemoryArtifactStore implements ArtifactStore {
+    constructor(options?: InMemoryArtifactStoreOptions);
+    // (undocumented)
+    delete(id: string): Promise<void>;
+    // (undocumented)
+    get(id: string): Promise<Artifact | undefined>;
+    // (undocumented)
+    put(input: PutArtifact, options?: ArtifactWriteOptions): Promise<ArtifactRef>;
+}
+
+// @public (undocumented)
+export interface InMemoryArtifactStoreOptions {
+    // (undocumented)
+    readonly clock?: () => Date;
+    // (undocumented)
+    readonly idGenerator?: () => string;
+    // (undocumented)
+    readonly maxArtifactBytes?: number;
 }
 
 // @public
@@ -794,6 +866,18 @@ export type PromptSelector = {
     readonly name: string;
     readonly version: string;
 };
+
+// @public (undocumented)
+export interface PutArtifact {
+    // (undocumented)
+    readonly filename?: string;
+    // (undocumented)
+    readonly metadata?: JsonObject;
+    // (undocumented)
+    readonly mimeType: string;
+    // (undocumented)
+    readonly source: ArtifactSource;
+}
 
 // @public
 export interface RecordApprovalDecision {
