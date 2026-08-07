@@ -14,6 +14,8 @@ export { PromptRegistry } from './prompt-registry.js';
 export { SafeDefaultToolPolicy } from './policy.js';
 export { reduceModelStream } from './reduce-stream.js';
 export { ToolRegistry } from './tool-registry.js';
+export { WorkflowRunner } from './workflow-runner.js';
+export { InMemoryWorkflowRunStore } from './workflow-store.js';
 export { addUsage } from './usage.js';
 export { validateModelRequest } from './validate-request.js';
 
@@ -136,3 +138,36 @@ export type {
   ToolHandler,
 } from './tool-registry.js';
 export type { Money, Usage } from './usage.js';
+export type {
+  SaveWorkflowRunOptions,
+  WorkflowApprovalCheckpoint,
+  WorkflowApprovalRequestedEvent,
+  WorkflowAwaitingApprovalEvent,
+  WorkflowCancelledEvent,
+  WorkflowCompletedEvent,
+  WorkflowDefinition,
+  WorkflowEvent,
+  WorkflowEventBase,
+  WorkflowExecutionContext,
+  WorkflowExecutor,
+  WorkflowExecutorEffect,
+  WorkflowExecutorHandler,
+  WorkflowFailedEvent,
+  WorkflowRef,
+  WorkflowResumedEvent,
+  WorkflowRetryPolicy,
+  WorkflowRunnerLimits,
+  WorkflowRunnerOptions,
+  WorkflowRunOptions,
+  WorkflowRunResult,
+  WorkflowRunState,
+  WorkflowRunStatus,
+  WorkflowRunStore,
+  WorkflowStageCompletedEvent,
+  WorkflowStageDefinition,
+  WorkflowStageKind,
+  WorkflowStageOutcome,
+  WorkflowStageRetryingEvent,
+  WorkflowStageStartedEvent,
+  WorkflowStartedEvent,
+} from './workflow-types.js';

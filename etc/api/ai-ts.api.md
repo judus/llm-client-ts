@@ -488,6 +488,14 @@ export interface InMemoryConversationStoreOptions {
 }
 
 // @public
+export class InMemoryWorkflowRunStore implements WorkflowRunStore {
+    // (undocumented)
+    get(runId: string): Promise<WorkflowRunState | undefined>;
+    // (undocumented)
+    put(state: WorkflowRunState, options: SaveWorkflowRunOptions): Promise<WorkflowRunState>;
+}
+
+// @public
 export type JsonArray = readonly JsonValue[];
 
 // @public
@@ -1044,6 +1052,11 @@ export interface SamplingOptions {
 }
 
 // @public (undocumented)
+export interface SaveWorkflowRunOptions {
+    readonly expectedRevision: number | null;
+}
+
+// @public (undocumented)
 export function serializeAiError(error: AiError): SerializedAiError;
 
 // @public (undocumented)
@@ -1285,6 +1298,314 @@ export interface Usage {
 
 // @public (undocumented)
 export function validateModelRequest(request: ModelRequest, capabilities: ModelCapabilities, providerId: string, streaming: boolean): void;
+
+// @public (undocumented)
+export interface WorkflowApprovalCheckpoint {
+    // (undocumented)
+    readonly action: ApprovalRequestInput['action'];
+    // (undocumented)
+    readonly output: JsonValue;
+    // (undocumented)
+    readonly requestId: string;
+    // (undocumented)
+    readonly stageId: string;
+}
+
+// @public (undocumented)
+export interface WorkflowApprovalRequestedEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly approval: ApprovalRequest;
+    // (undocumented)
+    readonly stageId: string;
+    // (undocumented)
+    readonly type: 'workflow.approval.requested';
+}
+
+// @public (undocumented)
+export interface WorkflowAwaitingApprovalEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly approvalRequestId: string;
+    // (undocumented)
+    readonly stageId: string;
+    // (undocumented)
+    readonly type: 'workflow.awaiting_approval';
+}
+
+// @public (undocumented)
+export interface WorkflowCancelledEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly type: 'workflow.cancelled';
+}
+
+// @public (undocumented)
+export interface WorkflowCompletedEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly type: 'workflow.completed';
+}
+
+// @public (undocumented)
+export interface WorkflowDefinition extends WorkflowRef {
+    // (undocumented)
+    readonly description?: string;
+    // (undocumented)
+    readonly inputSchema: JsonSchema;
+    // (undocumented)
+    readonly metadata?: JsonObject;
+    // (undocumented)
+    readonly outputSchema: JsonSchema;
+    // (undocumented)
+    readonly stages: readonly WorkflowStageDefinition[];
+}
+
+// @public (undocumented)
+export type WorkflowEvent = WorkflowApprovalRequestedEvent | WorkflowAwaitingApprovalEvent | WorkflowCancelledEvent | WorkflowCompletedEvent | WorkflowFailedEvent | WorkflowResumedEvent | WorkflowStageCompletedEvent | WorkflowStageRetryingEvent | WorkflowStageStartedEvent | WorkflowStartedEvent;
+
+// @public (undocumented)
+export interface WorkflowEventBase extends WorkflowRef {
+    // (undocumented)
+    readonly eventId: string;
+    // (undocumented)
+    readonly occurredAt: string;
+    // (undocumented)
+    readonly runId: string;
+    // (undocumented)
+    readonly sequence: number;
+}
+
+// @public (undocumented)
+export interface WorkflowExecutionContext extends WorkflowRef {
+    // (undocumented)
+    readonly attempt: number;
+    // (undocumented)
+    readonly deadline: string;
+    // (undocumented)
+    readonly runId: string;
+    // (undocumented)
+    readonly signal: AbortSignal;
+    // (undocumented)
+    readonly stageId: string;
+}
+
+// @public (undocumented)
+export interface WorkflowExecutor {
+    // (undocumented)
+    readonly effect: WorkflowExecutorEffect;
+    // (undocumented)
+    readonly execute: WorkflowExecutorHandler;
+    // (undocumented)
+    readonly id: string;
+}
+
+// @public (undocumented)
+export type WorkflowExecutorEffect = 'external' | 'idempotent' | 'none';
+
+// @public (undocumented)
+export type WorkflowExecutorHandler = (input: JsonValue, context: WorkflowExecutionContext) => Promise<WorkflowStageOutcome> | WorkflowStageOutcome;
+
+// @public (undocumented)
+export interface WorkflowFailedEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly type: 'workflow.failed';
+}
+
+// @public (undocumented)
+export interface WorkflowRef {
+    // (undocumented)
+    readonly name: string;
+    // (undocumented)
+    readonly version: string;
+}
+
+// @public (undocumented)
+export interface WorkflowResumedEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly type: 'workflow.resumed';
+}
+
+// @public (undocumented)
+export interface WorkflowRetryPolicy {
+    readonly maxAttempts: number;
+}
+
+// @public
+export class WorkflowRunner {
+    constructor(options: WorkflowRunnerOptions);
+    // (undocumented)
+    resume(runId: string, options?: WorkflowRunOptions): Promise<WorkflowRunResult>;
+    // (undocumented)
+    run(workflow: WorkflowRef, input: JsonValue, options?: WorkflowRunOptions): Promise<WorkflowRunResult>;
+}
+
+// @public (undocumented)
+export interface WorkflowRunnerLimits {
+    readonly maxActiveDurationMs: number;
+    // (undocumented)
+    readonly maxStageAttempts: number;
+    // (undocumented)
+    readonly maxStages: number;
+}
+
+// @public (undocumented)
+export interface WorkflowRunnerOptions {
+    // (undocumented)
+    readonly approvals: ApprovalCoordinator;
+    // (undocumented)
+    readonly clock?: () => Date;
+    // (undocumented)
+    readonly definitions: readonly WorkflowDefinition[];
+    // (undocumented)
+    readonly executors: readonly WorkflowExecutor[];
+    // (undocumented)
+    readonly idGenerator?: () => string;
+    // (undocumented)
+    readonly limits?: Partial<WorkflowRunnerLimits>;
+    // (undocumented)
+    readonly store?: WorkflowRunStore;
+}
+
+// @public (undocumented)
+export interface WorkflowRunOptions {
+    // (undocumented)
+    readonly signal?: AbortSignal;
+}
+
+// @public (undocumented)
+export interface WorkflowRunResult extends WorkflowRef {
+    // (undocumented)
+    readonly approval?: ApprovalRequest;
+    // (undocumented)
+    readonly error?: SerializedAiError;
+    // (undocumented)
+    readonly events: readonly WorkflowEvent[];
+    // (undocumented)
+    readonly output?: JsonValue;
+    // (undocumented)
+    readonly revision: number;
+    // (undocumented)
+    readonly runId: string;
+    // (undocumented)
+    readonly status: 'awaiting_approval' | 'cancelled' | 'completed' | 'failed';
+}
+
+// @public
+export interface WorkflowRunState extends WorkflowRef {
+    // (undocumented)
+    readonly approval?: WorkflowApprovalCheckpoint;
+    // (undocumented)
+    readonly createdAt: string;
+    // (undocumented)
+    readonly currentValue: JsonValue;
+    // (undocumented)
+    readonly error?: SerializedAiError;
+    // (undocumented)
+    readonly events: readonly WorkflowEvent[];
+    // (undocumented)
+    readonly input: JsonValue;
+    // (undocumented)
+    readonly nextStageIndex: number;
+    // (undocumented)
+    readonly output?: JsonValue;
+    // (undocumented)
+    readonly revision: number;
+    // (undocumented)
+    readonly runId: string;
+    // (undocumented)
+    readonly status: WorkflowRunStatus;
+    // (undocumented)
+    readonly updatedAt: string;
+}
+
+// @public (undocumented)
+export type WorkflowRunStatus = 'awaiting_approval' | 'cancelled' | 'completed' | 'executing' | 'failed' | 'ready';
+
+// @public (undocumented)
+export interface WorkflowRunStore {
+    // (undocumented)
+    get(runId: string): Promise<WorkflowRunState | undefined>;
+    // (undocumented)
+    put(state: WorkflowRunState, options: SaveWorkflowRunOptions): Promise<WorkflowRunState>;
+}
+
+// @public (undocumented)
+export interface WorkflowStageCompletedEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly attempt: number;
+    // (undocumented)
+    readonly stageId: string;
+    // (undocumented)
+    readonly type: 'workflow.stage.completed';
+}
+
+// @public (undocumented)
+export interface WorkflowStageDefinition {
+    // (undocumented)
+    readonly executorId: string;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly inputSchema: JsonSchema;
+    // (undocumented)
+    readonly kind: WorkflowStageKind;
+    // (undocumented)
+    readonly metadata?: JsonObject;
+    readonly nextStageIds?: readonly string[];
+    // (undocumented)
+    readonly outputSchema: JsonSchema;
+    // (undocumented)
+    readonly retry?: WorkflowRetryPolicy;
+    // (undocumented)
+    readonly timeoutMs: number;
+}
+
+// @public (undocumented)
+export type WorkflowStageKind = 'agent' | 'approval_wait' | 'branch' | 'deterministic' | 'model' | 'policy_gate' | 'structured_model' | 'summary' | 'tool';
+
+// @public (undocumented)
+export type WorkflowStageOutcome = {
+    readonly nextStageId?: string;
+    readonly output: JsonValue;
+    readonly status: 'completed';
+} | {
+    readonly approval: ApprovalRequestInput;
+    readonly output: JsonValue;
+    readonly status: 'awaiting_approval';
+};
+
+// @public (undocumented)
+export interface WorkflowStageRetryingEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly attempt: number;
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly nextAttempt: number;
+    // (undocumented)
+    readonly stageId: string;
+    // (undocumented)
+    readonly type: 'workflow.stage.retrying';
+}
+
+// @public (undocumented)
+export interface WorkflowStageStartedEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly attempt: number;
+    // (undocumented)
+    readonly kind: WorkflowStageKind;
+    // (undocumented)
+    readonly stageId: string;
+    // (undocumented)
+    readonly type: 'workflow.stage.started';
+}
+
+// @public (undocumented)
+export interface WorkflowStartedEvent extends WorkflowEventBase {
+    // (undocumented)
+    readonly type: 'workflow.started';
+}
 
 // (No @packageDocumentation comment for this package)
 

@@ -92,4 +92,14 @@ Verification succeeds only while an approval remains valid and only for the same
 
 `InMemoryApprovalStore` provides reference single-decision semantics and defensive copies. Production applications should inject durable storage with the same atomic create and decide behavior. An approval grants authority only for its bound action; it does not relax workflow limits or authorize adjacent operations.
 
+## Declared workflows
+
+`WorkflowRunner` executes immutable `name@version` definitions whose stages refer to registered code executors. Workflow and stage inputs and outputs are JSON values validated with draft 2020-12 schemas. Stage kinds cover deterministic functions, models, structured models, agents, tools, summaries, policy gates, approval waits, and forward-only branches.
+
+Definitions declare each stage timeout, optional bounded retry policy, effect classification, and—in branch stages—the complete set of allowed forward targets. External-effect executors cannot be retried automatically. Approval preparation must be side-effect free.
+
+The runner persists a revision-checked checkpoint before invoking every executor and after every completed stage. Approval stages persist the proposed action and output, return `awaiting_approval`, and release that output only after `ApprovalCoordinator` verifies the exact action. Concurrent resumes are resolved by optimistic concurrency. If a process or persistence failure leaves a run inside a stage, the runner returns `workflow_recovery_unsafe` instead of replaying a possibly completed side effect.
+
+`WorkflowRunStore` is the durable persistence port; `InMemoryWorkflowRunStore` is its defensive-copy reference implementation. Ordered events include the workflow name/version, stage identity, attempts, retries, approval boundaries, and terminal outcome. Active execution time, stage count, stage attempts, cancellation, and individual stage timeouts are all finite.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.
