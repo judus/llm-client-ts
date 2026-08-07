@@ -81,7 +81,7 @@ describe('OpenAIProvider', () => {
 
     expect(provider.id).toBe('openai');
     await expect(provider.capabilities(request.model)).resolves.toMatchObject({
-      input: { audio: false, documents: false, images: false, text: true },
+      input: { audio: false, documents: true, images: true, text: true },
       output: { structured: true, text: true },
       streaming: true,
       tools: { calls: true },

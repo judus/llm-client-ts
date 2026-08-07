@@ -25,8 +25,8 @@ export function defaultOpenAIModelCapabilities(): ModelCapabilities {
   return {
     input: {
       audio: false,
-      documents: false,
-      images: false,
+      documents: true,
+      images: true,
       text: true,
     },
     output: {

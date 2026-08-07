@@ -2,7 +2,7 @@
 
 OpenAI provider adapter for `@maduser/ai-ts`.
 
-The current alpha uses the Responses API for text generation, streaming, function tools, and structured-output request mapping. Responses, usage, refusals, and errors are normalized into core types; OpenAI SDK values do not cross the package boundary. Response storage defaults to disabled.
+The current alpha uses the Responses API for text, image, and document input; text generation; streaming; function tools; and structured-output request mapping. Responses, usage, refusals, and errors are normalized into core types; OpenAI SDK values do not cross the package boundary. Response storage defaults to disabled.
 
 ```ts
 import { AiClient } from '@maduser/ai-ts';
@@ -12,7 +12,18 @@ const provider = createOpenAIProvider();
 const client = new AiClient(provider);
 ```
 
-`OPENAI_API_KEY` is used by the underlying SDK when `apiKey` is omitted. Image, document, audio, transcription, speech, and realtime request mappings remain intentionally disabled until their dedicated milestones.
+`OPENAI_API_KEY` is used by the underlying SDK when `apiKey` is omitted. Audio, transcription, speech, and realtime request mappings remain intentionally disabled until their dedicated milestones.
+
+## Image and document input
+
+An `ImagePart` or `DocumentPart` keeps its text-adjacent position in the Responses message. Supported sources map as follows:
+
+- `bytes` becomes a Base64 data URL. Inline documents require a safe filename.
+- `url` becomes `image_url` or `file_url`; only credential-free HTTP(S) URLs are accepted.
+- an OpenAI `provider_file` becomes `file_id`.
+- `artifact` fails before transport because request mapping performs no hidden storage reads or uploads. Resolve the artifact to bytes, or acquire a provider-file lease and replace the source explicitly.
+
+The mapper accepts PNG, JPEG, WEBP, and GIF image MIME types. It enforces the provider's image-count and encoded-payload bounds and keeps inline documents below the combined 50 MB request boundary. Model-specific capability overrides remain available for deployments that support a narrower set.
 
 ## Provider files
 

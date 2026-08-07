@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { AiError, type ModelRequest } from '@maduser/ai-ts';
+import { AiError, type DocumentPart, type ModelRequest } from '@maduser/ai-ts';
 
 import { mapOpenAIRequest, mapOpenAIStreamRequest } from '../src/request-mapper.js';
 import { request } from './fixtures.js';
@@ -136,6 +136,64 @@ describe('OpenAI request mapping', () => {
     ]);
   });
 
+  it('preserves multimodal tool results as function output content', () => {
+    const toolRequest: ModelRequest = {
+      messages: [
+        {
+          content: [
+            {
+              callId: 'call-1',
+              content: [
+                { text: 'Generated files:', type: 'text' },
+                {
+                  detail: 'low',
+                  mimeType: 'image/png',
+                  source: { bytes: new Uint8Array([1]), type: 'bytes' },
+                  type: 'image',
+                },
+                {
+                  mimeType: 'application/pdf',
+                  source: { fileId: 'file-report', provider: 'openai', type: 'provider_file' },
+                  type: 'document',
+                },
+              ],
+              error: { code: 'partial', message: 'One item failed.', retryable: true },
+              status: 'error',
+              structuredContent: { generated: 2 },
+              type: 'tool_result',
+            },
+          ],
+          conversationId: 'conversation-1',
+          createdAt: '2026-08-07T10:00:02.000Z',
+          id: 'message-3',
+          role: 'tool',
+        },
+      ],
+      model: request.model,
+    };
+
+    expect(mapOpenAIRequest(toolRequest, false).input).toEqual([
+      {
+        call_id: 'call-1',
+        output: [
+          { text: '{"generated":2}', type: 'input_text' },
+          {
+            text: '{"error":{"code":"partial","message":"One item failed.","retryable":true}}',
+            type: 'input_text',
+          },
+          { text: 'Generated files:', type: 'input_text' },
+          {
+            detail: 'low',
+            image_url: 'data:image/png;base64,AQ==',
+            type: 'input_image',
+          },
+          { file_id: 'file-report', type: 'input_file' },
+        ],
+        type: 'function_call_output',
+      },
+    ]);
+  });
+
   it.each([
     [{ type: 'none' } as const, 'none'],
     [{ type: 'required' } as const, 'required'],
@@ -169,16 +227,45 @@ describe('OpenAI request mapping', () => {
     });
   });
 
-  it('rejects binary content until its dedicated mapper is enabled', () => {
-    const imageRequest: ModelRequest = {
+  it('maps inline, URL, and provider-file documents and images in message order', () => {
+    const multimodalRequest: ModelRequest = {
       messages: [
         {
           ...request.messages[0]!,
           content: [
+            { text: 'Inspect these inputs.', type: 'text' },
             {
               mimeType: 'image/png',
               source: { type: 'url', url: 'https://example.test/image.png' },
               type: 'image',
+            },
+            {
+              detail: 'high',
+              mimeType: 'IMAGE/JPEG',
+              source: { bytes: new Uint8Array([255]), type: 'bytes' },
+              type: 'image',
+            },
+            {
+              mimeType: 'image/webp',
+              source: { fileId: 'file-image', provider: 'openai', type: 'provider_file' },
+              type: 'image',
+            },
+            {
+              filename: 'inline.pdf',
+              mimeType: 'application/pdf',
+              source: { bytes: new Uint8Array([1, 2, 3]), type: 'bytes' },
+              type: 'document',
+            },
+            {
+              filename: 'remote.txt',
+              mimeType: 'text/plain',
+              source: { type: 'url', url: 'https://example.test/report.txt' },
+              type: 'document',
+            },
+            {
+              mimeType: 'application/pdf',
+              source: { fileId: 'file-document', provider: 'openai', type: 'provider_file' },
+              type: 'document',
             },
           ],
         },
@@ -186,6 +273,237 @@ describe('OpenAI request mapping', () => {
       model: request.model,
     };
 
-    expect(() => mapOpenAIRequest(imageRequest, false)).toThrow(AiError);
+    expect(mapOpenAIRequest(multimodalRequest, false).input).toEqual([
+      {
+        content: [
+          { text: 'Inspect these inputs.', type: 'input_text' },
+          {
+            detail: 'auto',
+            image_url: 'https://example.test/image.png',
+            type: 'input_image',
+          },
+          {
+            detail: 'high',
+            image_url: 'data:image/jpeg;base64,/w==',
+            type: 'input_image',
+          },
+          { detail: 'auto', file_id: 'file-image', type: 'input_image' },
+          {
+            file_data: 'data:application/pdf;base64,AQID',
+            filename: 'inline.pdf',
+            type: 'input_file',
+          },
+          {
+            file_url: 'https://example.test/report.txt',
+            filename: 'remote.txt',
+            type: 'input_file',
+          },
+          { file_id: 'file-document', type: 'input_file' },
+        ],
+        role: 'user',
+        type: 'message',
+      },
+    ]);
+  });
+
+  it('rejects unresolved artifacts, foreign files, unsafe URLs, and unsupported audio', () => {
+    const binaryRequest = (content: ModelRequest['messages'][number]['content']): ModelRequest => ({
+      messages: [{ ...request.messages[0]!, content }],
+      model: request.model,
+    });
+
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            filename: 'report.pdf',
+            mimeType: 'application/pdf',
+            source: { artifactId: 'artifact-1', type: 'artifact' },
+            type: 'document',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'openai_artifact_not_materialized' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            mimeType: 'image/png',
+            source: { fileId: 'file-1', provider: 'bedrock', type: 'provider_file' },
+            type: 'image',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'openai_provider_file_mismatch' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            mimeType: 'image/png',
+            source: { type: 'url', url: 'file:///private/image.png' },
+            type: 'image',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'invalid_openai_image_url' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            mimeType: 'image/png',
+            source: { type: 'url', url: 'not a URL' },
+            type: 'image',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'invalid_openai_image_url' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            mimeType: 'image/png',
+            source: { fileId: ' ', provider: 'openai', type: 'provider_file' },
+            type: 'image',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'invalid_openai_provider_file_id' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            mimeType: 'image/png',
+            source: { artifactId: 'artifact-image', type: 'artifact' },
+            type: 'image',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'openai_artifact_not_materialized' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            mimeType: 'audio/wav',
+            source: { bytes: new Uint8Array([1]), type: 'bytes' },
+            type: 'audio',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(AiError);
+  });
+
+  it('enforces binary validation and bounded inline mapping', () => {
+    const binaryRequest = (content: ModelRequest['messages'][number]['content']): ModelRequest => ({
+      messages: [{ ...request.messages[0]!, content }],
+      model: request.model,
+    });
+    const document = (bytes: Uint8Array): DocumentPart => ({
+      filename: 'report.pdf',
+      mimeType: 'application/pdf',
+      source: { bytes, type: 'bytes' as const },
+      type: 'document' as const,
+    });
+    const image = {
+      mimeType: 'image/png',
+      source: { bytes: new Uint8Array([1]), type: 'bytes' as const },
+      type: 'image' as const,
+    };
+
+    expect(() =>
+      mapOpenAIRequest(binaryRequest([document(new Uint8Array([1, 2]))]), false, {
+        maxInlineDocumentBytes: 2,
+      }),
+    ).toThrow(expect.objectContaining({ code: 'openai_inline_document_limit_exceeded' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([document(new Uint8Array([1])), document(new Uint8Array([2]))]),
+        false,
+        { maxInlineDocumentBytes: 2 },
+      ),
+    ).toThrow(expect.objectContaining({ code: 'openai_inline_document_limit_exceeded' }));
+    expect(() =>
+      mapOpenAIRequest(binaryRequest([image]), false, { maxInlineImagePayloadBytes: 1 }),
+    ).toThrow(expect.objectContaining({ code: 'openai_inline_image_payload_limit_exceeded' }));
+    expect(() =>
+      mapOpenAIRequest(binaryRequest([image, image]), false, { maxImageCount: 1 }),
+    ).toThrow(expect.objectContaining({ code: 'openai_image_count_exceeded' }));
+    expect(() => mapOpenAIRequest(binaryRequest([image]), false, { maxImageCount: 0 })).toThrow(
+      expect.objectContaining({ code: 'invalid_openai_mapping_limit' }),
+    );
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            mimeType: 'image/svg+xml',
+            source: { bytes: new Uint8Array([1]), type: 'bytes' },
+            type: 'image',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'unsupported_openai_image_mime_type' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            mimeType: 'application/pdf',
+            source: { bytes: new Uint8Array([1]), type: 'bytes' },
+            type: 'document',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'openai_inline_document_filename_required' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            filename: '../report.pdf',
+            mimeType: 'application/pdf',
+            source: { bytes: new Uint8Array([1]), type: 'bytes' },
+            type: 'document',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'invalid_openai_document_filename' }));
+    expect(() =>
+      mapOpenAIRequest(
+        binaryRequest([
+          {
+            filename: 'report.pdf',
+            mimeType: 'not-a-mime-type',
+            source: { bytes: new Uint8Array([1]), type: 'bytes' },
+            type: 'document',
+          },
+        ]),
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'invalid_openai_document_mime_type' }));
+    expect(() => mapOpenAIRequest(binaryRequest([document(new Uint8Array())]), false)).toThrow(
+      expect.objectContaining({ code: 'invalid_openai_document_bytes' }),
+    );
+    expect(() =>
+      mapOpenAIRequest(
+        {
+          messages: [
+            {
+              ...request.messages[0]!,
+              content: [{ text: 'invalid direct tool content', type: 'text' }],
+              role: 'tool',
+            },
+          ],
+          model: request.model,
+        },
+        false,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'invalid_openai_tool_message_content' }));
   });
 });
