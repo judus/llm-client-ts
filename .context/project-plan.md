@@ -1,9 +1,15 @@
 # Maduser AI TypeScript Suite: Standalone Client and Agent Runtime
 
-Status: proposed implementation plan
+Status: implementation in progress
 Plan date: 2026-08-07
 Target runtime: Node.js 24 or newer
 Primary language: strict TypeScript
+
+Implementation status on 2026-08-07:
+
+- Milestones 0 through 5 are complete in the local Git history.
+- Milestone 6 is in progress; bounded provider-neutral artifact storage is complete.
+- Milestones 7 through 9 have not started.
 
 ## 1. Outcome
 
