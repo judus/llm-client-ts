@@ -26,6 +26,10 @@ export interface AgentDefinition {
 // @public (undocumented)
 export interface AgentResult {
     // (undocumented)
+    readonly conversationId: string;
+    // (undocumented)
+    readonly conversationRevision?: number;
+    // (undocumented)
     readonly error?: SerializedAiError;
     // (undocumented)
     readonly messages: readonly ConversationMessage[];
@@ -72,6 +76,12 @@ export interface AgentRuntimeOptions {
     readonly client: AiClient;
     // (undocumented)
     readonly clock?: () => Date;
+    // (undocumented)
+    readonly contextSelection?: ContextSelectionOptions;
+    // (undocumented)
+    readonly conversations?: ConversationStore;
+    // (undocumented)
+    readonly historySelector?: PairSafeHistorySelector;
     // (undocumented)
     readonly idGenerator?: () => string;
     // (undocumented)

@@ -72,6 +72,8 @@ Every run has finite model-step, tool-call, per-tool, parallelism, token, repeat
 
 `ConversationStore` is the persistence port. `InMemoryConversationStore` is the reference implementation and requires an expected revision on every append, preventing concurrent runs from silently interleaving message batches. `snapshot()` reads metadata, revision, and messages together.
 
+Pass a store as `conversations` when constructing `BoundedAgentRuntime` to continue runs against durable history. Each run loads one snapshot, selects context, and appends its new message batch once. A failed append is never retried automatically. If any executor was invoked, the normalized persistence error is explicitly non-retryable because repeating the run could duplicate an external side effect.
+
 `PairSafeHistorySelector` is independent of storage. It reserves output/tool capacity, retains system and developer instructions, prefers recent history, and never separates assistant tool calls from their result messages. Its result lists every omitted message and reason. Applications should inject a provider-aware `TokenEstimator`; `CharacterTokenEstimator` is a deterministic fallback.
 
 Summary contracts retain source-message boundaries, prompt version, generating model, timestamp, and whether durable sources remain available.

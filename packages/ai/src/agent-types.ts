@@ -53,6 +53,8 @@ export interface AgentRunOptions {
 export type AgentRunStatus = 'cancelled' | 'completed' | 'failed' | 'limit_exceeded';
 
 export interface AgentResult {
+  readonly conversationId: string;
+  readonly conversationRevision?: number;
   readonly error?: SerializedAiError;
   readonly messages: readonly ConversationMessage[];
   readonly modelSteps: number;

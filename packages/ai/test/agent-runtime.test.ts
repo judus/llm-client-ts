@@ -4,10 +4,14 @@ import {
   AiClient,
   AiError,
   BoundedAgentRuntime,
+  InMemoryConversationStore,
   ToolRegistry,
   type AgentRunRequest,
   type CallOptions,
   type ConversationMessage,
+  type Conversation,
+  type ConversationSnapshot,
+  type ConversationStore,
   type ModelCapabilities,
   type ModelProvider,
   type ModelRequest,
@@ -94,6 +98,45 @@ class HangingProvider implements ModelProvider {
   public async *stream(): AsyncGenerator<ModelStreamEvent, void, void> {
     yield await Promise.reject(new Error('Streaming is not used by this test provider.'));
   }
+}
+
+class RejectingConversationStore implements ConversationStore {
+  public appendCalls = 0;
+
+  public append(): Promise<Conversation> {
+    this.appendCalls += 1;
+    return Promise.reject(
+      new AiError('persistence_conflict', 'Concurrent append.', {
+        code: 'conversation_revision_conflict',
+        retryable: true,
+      }),
+    );
+  }
+
+  public create(): Promise<Conversation> {
+    return Promise.reject(new Error('The fixture conversation already exists.'));
+  }
+
+  public get(): Promise<Conversation | undefined> {
+    return Promise.resolve(conversation());
+  }
+
+  public listMessages(): Promise<readonly ConversationMessage[]> {
+    return Promise.resolve([]);
+  }
+
+  public snapshot(): Promise<ConversationSnapshot | undefined> {
+    return Promise.resolve({ conversation: conversation(), messages: [] });
+  }
+}
+
+function conversation(): Conversation {
+  return {
+    createdAt: '2026-08-07T12:00:00.000Z',
+    id: 'conversation-1',
+    revision: 7,
+    updatedAt: '2026-08-07T12:00:00.000Z',
+  };
 }
 
 class FixedPolicy implements ToolPolicy {
@@ -532,6 +575,84 @@ describe('BoundedAgentRuntime', () => {
       error: { details: { limit: 'maxRepeatedToolFailures' } },
       status: 'limit_exceeded',
     });
+  });
+
+  it('continues a stored conversation across runs using optimistic revisions', async () => {
+    const conversations = new InMemoryConversationStore({
+      clock: () => new Date('2026-08-07T12:00:00.000Z'),
+      idGenerator: () => 'unused',
+    });
+    const provider = new QueueProvider([
+      finalResponse('First.'),
+      response(
+        'second-final-response',
+        [{ source: 'generated', text: 'Second.', type: 'text' }],
+        'stop',
+      ),
+    ]);
+    let id = 0;
+    const agentRuntime = new BoundedAgentRuntime({
+      client: new AiClient(provider),
+      clock: () => new Date('2026-08-07T12:00:00.000Z'),
+      conversations,
+      idGenerator: () => `stored-${String(id++)}`,
+      tools: registry(),
+    });
+
+    const first = await agentRuntime.run(baseRequest);
+    const second = await agentRuntime.run({
+      ...baseRequest,
+      input: [{ source: 'typed', text: 'Continue.', type: 'text' }],
+    });
+
+    expect(first).toMatchObject({ conversationId: 'conversation-1', conversationRevision: 1 });
+    expect(second).toMatchObject({ conversationId: 'conversation-1', conversationRevision: 2 });
+    expect(provider.requests[1]?.messages.map(({ role }) => role)).toEqual([
+      'developer',
+      'user',
+      'assistant',
+      'developer',
+      'user',
+    ]);
+    expect((await conversations.snapshot('conversation-1'))?.messages).toHaveLength(6);
+  });
+
+  it('never retries a failed persistence append and marks side-effect conflicts non-retryable', async () => {
+    const withoutSideEffects = new RejectingConversationStore();
+    const plainResult = await new BoundedAgentRuntime({
+      client: new AiClient(new QueueProvider([finalResponse()])),
+      conversations: withoutSideEffects,
+      tools: registry(),
+    }).run(baseRequest);
+    expect(plainResult).toMatchObject({
+      error: {
+        code: 'agent_run_persistence_failed',
+        details: { executorsInvoked: false, originalCode: 'conversation_revision_conflict' },
+        retryable: true,
+      },
+      status: 'failed',
+    });
+    expect(withoutSideEffects.appendCalls).toBe(1);
+
+    const execute = vi.fn(() => ({ structuredContent: { value: 'answer' } }));
+    const afterSideEffect = new RejectingConversationStore();
+    const toolResult = await new BoundedAgentRuntime({
+      client: new AiClient(
+        new QueueProvider([toolResponse(lookupCall()), finalResponse('Finished.')]),
+      ),
+      conversations: afterSideEffect,
+      tools: registry(execute),
+    }).run(baseRequest);
+    expect(toolResult).toMatchObject({
+      error: {
+        code: 'agent_run_persistence_failed',
+        details: { executorsInvoked: true },
+        retryable: false,
+      },
+      status: 'failed',
+    });
+    expect(execute).toHaveBeenCalledOnce();
+    expect(afterSideEffect.appendCalls).toBe(1);
   });
 });
 

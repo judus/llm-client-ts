@@ -8,6 +8,8 @@ import type {
 import { defaultRunLimits } from './agent-types.js';
 import type { ToolResultPart } from './content.js';
 import type { AiClient } from './client.js';
+import { PairSafeHistorySelector, type ContextSelectionOptions } from './context-selection.js';
+import type { ConversationStore } from './conversation-store.js';
 import { AiError, serializeAiError } from './error.js';
 import type { JsonValue } from './json.js';
 import type { ConversationMessage } from './message.js';
@@ -29,6 +31,9 @@ import { addUsage, type Usage } from './usage.js';
 export interface AgentRuntimeOptions {
   readonly client: AiClient;
   readonly clock?: () => Date;
+  readonly contextSelection?: ContextSelectionOptions;
+  readonly conversations?: ConversationStore;
+  readonly historySelector?: PairSafeHistorySelector;
   readonly idGenerator?: () => string;
   readonly policy?: ToolPolicy;
   readonly tools?: ToolRegistry;
@@ -40,9 +45,13 @@ interface RunState {
   readonly failureCounts: Map<string, number>;
   readonly limits: RunLimits;
   readonly messages: ConversationMessage[];
+  readonly pendingMessages: ConversationMessage[];
   readonly runId: string;
   readonly startedAtMs: number;
+  conversationRevision?: number;
+  executorsInvoked: boolean;
   modelSteps: number;
+  persistenceAttempted: boolean;
   toolCalls: number;
   usage: Usage;
 }
@@ -62,6 +71,9 @@ interface ExecutedToolCall {
 export class BoundedAgentRuntime {
   readonly #client: AiClient;
   readonly #clock: () => Date;
+  readonly #conversations: ConversationStore | undefined;
+  readonly #contextSelection: ContextSelectionOptions;
+  readonly #historySelector: PairSafeHistorySelector;
   readonly #idGenerator: () => string;
   readonly #policy: ToolPolicy;
   readonly #tools: ToolRegistry;
@@ -69,6 +81,9 @@ export class BoundedAgentRuntime {
   public constructor(options: AgentRuntimeOptions) {
     this.#client = options.client;
     this.#clock = options.clock ?? (() => new Date());
+    this.#conversations = options.conversations;
+    this.#contextSelection = options.contextSelection ?? defaultContextSelection;
+    this.#historySelector = options.historySelector ?? new PairSafeHistorySelector();
     this.#idGenerator = options.idGenerator ?? (() => globalThis.crypto.randomUUID());
     this.#policy = options.policy ?? new SafeDefaultToolPolicy();
     this.#tools = options.tools ?? new ToolRegistry();
@@ -96,13 +111,23 @@ export class BoundedAgentRuntime {
     const limits = mergeLimits(request.limits);
     const runId = this.#idGenerator();
     const conversationId = request.conversationId ?? this.#idGenerator();
+    const initialMessages = this.#initialMessages(request, runId, conversationId);
+    const history = await this.#loadHistory(conversationId);
+    const selected = this.#historySelector.select(
+      [...(history?.messages ?? []), ...initialMessages],
+      this.#contextSelection,
+    );
     const state: RunState = {
       callCounts: new Map<string, number>(),
       conversationId,
       failureCounts: new Map<string, number>(),
       limits,
-      messages: this.#initialMessages(request, runId, conversationId),
+      ...(history === undefined ? {} : { conversationRevision: history.revision }),
+      executorsInvoked: false,
+      messages: [...selected.messages],
       modelSteps: 0,
+      pendingMessages: [...initialMessages],
+      persistenceAttempted: false,
       runId,
       startedAtMs: this.#clock().getTime(),
       toolCalls: 0,
@@ -126,6 +151,7 @@ export class BoundedAgentRuntime {
         throwIfRunAborted(signal, timeoutController.signal);
         const requestLimit = checkBudget(state, this.#clock().getTime());
         if (requestLimit !== undefined) {
+          await this.#persist(state);
           yield limitEvent(events, state, requestLimit);
           return;
         }
@@ -137,10 +163,12 @@ export class BoundedAgentRuntime {
         };
         yield { ...events.next(), request: modelRequest, step, type: 'run.model.started' };
 
-        const response = await this.#client.generate(modelRequest, { signal });
+        const providerResponse = await this.#client.generate(modelRequest, { signal });
+        const response = normalizeResponseMessage(providerResponse, state);
         state.modelSteps += 1;
         state.usage = addUsage(state.usage, response.usage);
         state.messages.push(response.message);
+        state.pendingMessages.push(response.message);
 
         yield { ...events.next(), response, step, type: 'run.model.completed' };
         yield { ...events.next(), type: 'run.usage.updated', usage: state.usage };
@@ -152,6 +180,7 @@ export class BoundedAgentRuntime {
 
         const responseLimit = checkBudget(state, this.#clock().getTime());
         if (responseLimit !== undefined) {
+          await this.#persist(state);
           yield limitEvent(events, state, responseLimit);
           return;
         }
@@ -165,12 +194,14 @@ export class BoundedAgentRuntime {
               { code: 'missing_tool_call' },
             );
           }
+          await this.#persist(state);
           yield completedEvent(events, state, response);
           return;
         }
 
         const callLimit = this.#recordCalls(state, calls);
         if (callLimit !== undefined) {
+          await this.#persist(state);
           yield limitEvent(events, state, callLimit);
           return;
         }
@@ -233,6 +264,9 @@ export class BoundedAgentRuntime {
         const executed: ExecutedToolCall[] = [];
         for (let offset = 0; offset < executable.length; offset += concurrency) {
           const batch = executable.slice(offset, offset + concurrency);
+          if (batch.length > 0) {
+            state.executorsInvoked = true;
+          }
           for (const { call } of batch) {
             yield { ...events.next(), call, type: 'run.tool.started' };
           }
@@ -264,18 +298,27 @@ export class BoundedAgentRuntime {
           }
           return result;
         });
-        state.messages.push(this.#toolMessage(state, results));
+        const toolMessage = this.#toolMessage(state, results);
+        state.messages.push(toolMessage);
+        state.pendingMessages.push(toolMessage);
 
         const repeatedFailure = recordFailures(state, calls, results);
         if (repeatedFailure) {
+          await this.#persist(state);
           yield limitEvent(events, state, 'maxRepeatedToolFailures');
           return;
         }
       }
 
+      await this.#persist(state);
       yield limitEvent(events, state, 'maxModelSteps');
     } catch (error) {
-      const normalized = normalizeRunError(error, options.signal, timeoutController.signal);
+      let normalized = normalizeRunError(error, options.signal, timeoutController.signal);
+      try {
+        await this.#persist(state);
+      } catch (persistenceError) {
+        normalized = normalizeRunError(persistenceError, options.signal, timeoutController.signal);
+      }
       if (normalized.category === 'budget_exceeded') {
         yield limitEvent(events, state, 'maxDurationMs', normalized);
       } else if (normalized.category === 'cancelled') {
@@ -297,6 +340,59 @@ export class BoundedAgentRuntime {
       }
     } finally {
       globalThis.clearTimeout(timeout);
+    }
+  }
+
+  async #loadHistory(
+    conversationId: string,
+  ): Promise<
+    { readonly messages: readonly ConversationMessage[]; readonly revision: number } | undefined
+  > {
+    if (this.#conversations === undefined) {
+      return undefined;
+    }
+    const existing = await this.#conversations.snapshot(conversationId);
+    if (existing !== undefined) {
+      return { messages: existing.messages, revision: existing.conversation.revision };
+    }
+    const created = await this.#conversations.create({ id: conversationId });
+    return { messages: [], revision: created.revision };
+  }
+
+  async #persist(state: RunState): Promise<void> {
+    if (
+      this.#conversations === undefined ||
+      state.conversationRevision === undefined ||
+      state.persistenceAttempted
+    ) {
+      return;
+    }
+    state.persistenceAttempted = true;
+    try {
+      const conversation = await this.#conversations.append(
+        state.conversationId,
+        state.pendingMessages,
+        { expectedRevision: state.conversationRevision },
+      );
+      state.conversationRevision = conversation.revision;
+    } catch (cause) {
+      const originalCode = cause instanceof AiError ? cause.code : 'unknown';
+      throw new AiError(
+        'persistence_conflict',
+        `Failed to persist agent run ${state.runId}. The run was not replayed.`,
+        {
+          cause,
+          code: 'agent_run_persistence_failed',
+          details: {
+            conversationId: state.conversationId,
+            executorsInvoked: state.executorsInvoked,
+            expectedRevision: state.conversationRevision,
+            originalCode,
+            runId: state.runId,
+          },
+          retryable: !state.executorsInvoked,
+        },
+      );
     }
   }
 
@@ -616,6 +712,10 @@ function completedEvent(
   return {
     ...events.next(),
     result: {
+      conversationId: state.conversationId,
+      ...(state.conversationRevision === undefined
+        ? {}
+        : { conversationRevision: state.conversationRevision }),
       messages: [...state.messages],
       modelSteps: state.modelSteps,
       output: response.message,
@@ -634,6 +734,10 @@ function terminalResult(
   error: AiError,
 ): AgentResult {
   return {
+    conversationId: state.conversationId,
+    ...(state.conversationRevision === undefined
+      ? {}
+      : { conversationRevision: state.conversationRevision }),
     error: serializeAiError(error),
     messages: [...state.messages],
     modelSteps: state.modelSteps,
@@ -641,6 +745,17 @@ function terminalResult(
     status,
     toolCalls: state.toolCalls,
     usage: state.usage,
+  };
+}
+
+function normalizeResponseMessage(response: ModelResponse, state: RunState): ModelResponse {
+  return {
+    ...response,
+    message: {
+      ...response.message,
+      conversationId: state.conversationId,
+      runId: state.runId,
+    },
   };
 }
 
@@ -695,6 +810,12 @@ const runLimitNames: readonly (keyof RunLimits)[] = [
   'maxToolCalls',
   'maxTotalTokens',
 ];
+
+const defaultContextSelection: ContextSelectionOptions = {
+  maxContextTokens: 200_000,
+  reserveOutputTokens: 32_000,
+  reserveToolResultTokens: 16_000,
+};
 
 function isTerminalEvent(event: RunEvent): event is TerminalRunEvent {
   return (

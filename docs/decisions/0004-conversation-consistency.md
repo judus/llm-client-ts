@@ -13,6 +13,8 @@ Context selection is a separate strategy from persistence. The initial selector 
 
 Summaries are explicit records with source message boundaries, prompt version, model, creation time, and source-retention status. Recursive summarization must retain that lineage.
 
+The agent runtime may receive a conversation store and history selector. It reads one snapshot before model work and performs one append after the run reaches a terminal state. It never retries that append or replays the run automatically. Persistence conflicts after any tool executor was invoked are marked non-retryable, since annotations cannot prove that an external side effect did not occur.
+
 ## Consequences
 
 - Concurrent writers receive a typed revision conflict instead of silently interleaving state.
