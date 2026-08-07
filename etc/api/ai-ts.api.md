@@ -4,6 +4,20 @@
 
 ```ts
 
+// @public (undocumented)
+export interface AcquireProviderFileLease {
+    // (undocumented)
+    readonly artifactId: string;
+    // (undocumented)
+    readonly deleteOnRelease?: boolean;
+    // (undocumented)
+    readonly leaseDurationMs?: number;
+    // (undocumented)
+    readonly purpose: string;
+    // (undocumented)
+    readonly scopeId: string;
+}
+
 // @public
 export function addUsage(left: Usage, right: Usage): Usage;
 
@@ -866,6 +880,127 @@ export type PromptSelector = {
     readonly name: string;
     readonly version: string;
 };
+
+// @public (undocumented)
+export interface ProviderFileAdapter {
+    // (undocumented)
+    delete(fileId: string, scopeId: string, options?: CallOptions): Promise<void>;
+    // (undocumented)
+    readonly provider: string;
+    // (undocumented)
+    upload(request: ProviderFileUploadRequest, options?: CallOptions): Promise<ProviderFileUpload>;
+}
+
+// @public (undocumented)
+export interface ProviderFileCleanupFailure {
+    // (undocumented)
+    readonly code: string;
+    // (undocumented)
+    readonly providerFileId: string;
+}
+
+// @public (undocumented)
+export interface ProviderFileCleanupReport {
+    // (undocumented)
+    readonly deleted: number;
+    // (undocumented)
+    readonly expiredLeases: number;
+    // (undocumented)
+    readonly failures: readonly ProviderFileCleanupFailure[];
+}
+
+// @public (undocumented)
+export interface ProviderFileEventBase<Type extends string> {
+    // (undocumented)
+    readonly errorCode?: string;
+    // (undocumented)
+    readonly leaseId?: string;
+    // (undocumented)
+    readonly provider: string;
+    // (undocumented)
+    readonly providerFileId: string;
+    // (undocumented)
+    readonly sequence: number;
+    // (undocumented)
+    readonly timestamp: string;
+    // (undocumented)
+    readonly type: Type;
+}
+
+// @public (undocumented)
+export interface ProviderFileLease {
+    // (undocumented)
+    readonly acquiredAt: string;
+    // (undocumented)
+    readonly artifactChecksum: ArtifactChecksum;
+    // (undocumented)
+    readonly artifactId: string;
+    // (undocumented)
+    readonly deleteOnRelease: boolean;
+    // (undocumented)
+    readonly expiresAt: string;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly provider: string;
+    // (undocumented)
+    readonly providerFileId: string;
+    // (undocumented)
+    readonly purpose: string;
+    // (undocumented)
+    readonly reused: boolean;
+    // (undocumented)
+    readonly scopeId: string;
+}
+
+// @public
+export class ProviderFileLeaseManager {
+    constructor(options: ProviderFileLeaseManagerOptions);
+    // (undocumented)
+    acquire(request: AcquireProviderFileLease, options?: CallOptions): Promise<ProviderFileLease>;
+    // (undocumented)
+    cleanup(options?: CallOptions): Promise<ProviderFileCleanupReport>;
+    // (undocumented)
+    get events(): readonly ProviderFileLifecycleEvent[];
+    // (undocumented)
+    get(leaseId: string): ProviderFileLease | undefined;
+    // (undocumented)
+    release(leaseId: string, options?: CallOptions): Promise<void>;
+}
+
+// @public (undocumented)
+export interface ProviderFileLeaseManagerOptions {
+    // (undocumented)
+    readonly adapter: ProviderFileAdapter;
+    // (undocumented)
+    readonly artifacts: ArtifactStore;
+    // (undocumented)
+    readonly clock?: () => Date;
+    // (undocumented)
+    readonly defaultLeaseDurationMs?: number;
+    // (undocumented)
+    readonly idGenerator?: () => string;
+}
+
+// @public (undocumented)
+export type ProviderFileLifecycleEvent = ProviderFileEventBase<'provider_file.cleanup_failed'> | ProviderFileEventBase<'provider_file.deleted'> | ProviderFileEventBase<'provider_file.lease_expired'> | ProviderFileEventBase<'provider_file.released'> | ProviderFileEventBase<'provider_file.reused'> | ProviderFileEventBase<'provider_file.uploaded'>;
+
+// @public (undocumented)
+export interface ProviderFileUpload {
+    // (undocumented)
+    readonly expiresAt?: string;
+    // (undocumented)
+    readonly fileId: string;
+}
+
+// @public (undocumented)
+export interface ProviderFileUploadRequest {
+    // (undocumented)
+    readonly artifact: Artifact;
+    // (undocumented)
+    readonly purpose: string;
+    readonly scopeId: string;
+}
 
 // @public (undocumented)
 export interface PutArtifact {

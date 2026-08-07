@@ -12,6 +12,7 @@ export { CharacterTokenEstimator, PairSafeHistorySelector } from './context-sele
 export { AiError, UnsupportedCapabilityError, serializeAiError } from './error.js';
 export { InMemoryConversationStore } from './conversation-store.js';
 export { PromptRegistry } from './prompt-registry.js';
+export { ProviderFileLeaseManager } from './provider-file.js';
 export { SafeDefaultToolPolicy } from './policy.js';
 export { reduceModelStream } from './reduce-stream.js';
 export { ToolRegistry } from './tool-registry.js';
@@ -103,6 +104,18 @@ export type {
   RenderedPrompt,
 } from './prompt-registry.js';
 export type { PolicyDecision, PolicyEvaluationContext, ToolPolicy } from './policy.js';
+export type {
+  AcquireProviderFileLease,
+  ProviderFileAdapter,
+  ProviderFileCleanupFailure,
+  ProviderFileCleanupReport,
+  ProviderFileEventBase,
+  ProviderFileLease,
+  ProviderFileLeaseManagerOptions,
+  ProviderFileLifecycleEvent,
+  ProviderFileUpload,
+  ProviderFileUploadRequest,
+} from './provider-file.js';
 export type {
   RunBudgetUpdatedEvent,
   RunCancelledEvent,

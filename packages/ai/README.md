@@ -108,4 +108,8 @@ The runner persists a revision-checked checkpoint before invoking every executor
 
 `InMemoryArtifactStore` is the bounded reference implementation. It accepts bytes or an asynchronous byte source, enforces the byte limit while reading, validates MIME types and safe filenames, honors cancellation, and publishes an artifact only after the complete input has been checksummed. Reads return defensive copies. Applications can replace it with durable or encrypted storage behind the same contract.
 
+`ProviderFileLeaseManager` maps artifacts to provider files without treating provider IDs as portable. Reuse is isolated by provider, opaque tenant/credential scope, purpose, artifact checksum, and cleanup policy. Concurrent acquisitions share one upload, while every caller receives a separately expiring lease. Provider expiry can shorten but never extend a requested lease.
+
+Releasing the final delete-on-release lease attempts remote deletion. Failed cleanup remains retryable through `cleanup()` and is recorded in the ordered lifecycle event log. Expired leases are released by cleanup as well. Because an upload is a potentially completed external effect, cancellation never claims to undo it; zero-reference uploads remain tracked for deterministic cleanup.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.
