@@ -19,5 +19,5 @@ MCP tool output is converted into core text, image, audio, and document content.
 - Applications can substitute a deterministic session without emulating SDK internals.
 - SDK changes are contained behind the session adapter and conversion boundary.
 - Names cannot silently collide across servers.
-- Closing a client is terminal; a failed connection remains retryable.
+- Closing a client is terminal; a failed connection or transport remains reconnectable without replaying an uncertain tool call.
 - Resources and prompts can be added later without widening the initial tool contract.

@@ -21,25 +21,64 @@ import type {
 
 /** Official MCP SDK v2 session behind the suite's narrow protocol seam. */
 export class SdkMcpSession implements McpSession {
-  readonly #client: Client;
-  readonly #transport: Transport;
+  #client: Client | undefined;
+  #connectController: AbortController | undefined;
+  #connectPromise: Promise<void> | undefined;
+  readonly #connectionFactory: () => { readonly client: Client; readonly transport: Transport };
 
-  public constructor(client: Client, transport: Transport) {
-    this.#client = client;
-    this.#transport = transport;
+  public constructor(
+    connectionFactory: () => { readonly client: Client; readonly transport: Transport },
+  ) {
+    this.#connectionFactory = connectionFactory;
   }
 
   public async connect(options: McpOperationOptions): Promise<void> {
+    if (this.#connectPromise !== undefined) {
+      return this.#connectPromise;
+    }
+    if (this.#client !== undefined) {
+      return;
+    }
+    const controller = new AbortController();
+    this.#connectController = controller;
+    const connecting = this.#open({
+      ...options,
+      signal:
+        options.signal === undefined
+          ? controller.signal
+          : AbortSignal.any([options.signal, controller.signal]),
+    });
+    this.#connectPromise = connecting;
     try {
-      await raceAbort(this.#client.connect(this.#transport), options.signal, options.timeoutMs);
+      await connecting;
+    } finally {
+      if (this.#connectPromise === connecting) {
+        this.#connectController = undefined;
+        this.#connectPromise = undefined;
+      }
+    }
+  }
+
+  async #open(options: McpOperationOptions): Promise<void> {
+    const connection = this.#connectionFactory();
+    this.#client = connection.client;
+    try {
+      await raceAbort(
+        connection.client.connect(connection.transport),
+        options.signal,
+        options.timeoutMs,
+      );
     } catch (error) {
-      await this.#client.close().catch(() => undefined);
+      if (this.#client === connection.client) {
+        this.#client = undefined;
+      }
+      await connection.client.close().catch(() => undefined);
       throw error;
     }
   }
 
   public async listTools(options: McpOperationOptions): Promise<readonly McpRemoteTool[]> {
-    const result = await this.#client.listTools(undefined, requestOptions(options));
+    const result = await this.#connectedClient().listTools(undefined, requestOptions(options));
     return result.tools.map(convertTool);
   }
 
@@ -48,40 +87,55 @@ export class SdkMcpSession implements McpSession {
     arguments_: JsonObject,
     options: McpOperationOptions,
   ): Promise<McpRemoteToolResult> {
-    const result = await this.#client.callTool(
+    const result = await this.#connectedClient().callTool(
       { arguments: arguments_, name },
       requestOptions(options),
     );
     return convertResult(result);
   }
 
-  public close(): Promise<void> {
-    return this.#client.close();
+  public async close(): Promise<void> {
+    this.#connectController?.abort(new DOMException('MCP session closed.', 'AbortError'));
+    await this.#connectPromise?.catch(() => undefined);
+    const client = this.#client;
+    this.#client = undefined;
+    await client?.close();
+  }
+
+  #connectedClient(): Client {
+    if (this.#client === undefined) {
+      throw new AiError('invalid_request', 'MCP session is not connected.', {
+        code: 'mcp_session_not_connected',
+      });
+    }
+    return this.#client;
   }
 }
 
 export function createStdioMcpSession(options: StdioMcpSessionOptions): McpSession {
-  const client = createClient(options.client, options.protocolNegotiation);
-  const transport = new StdioClientTransport({
-    ...(options.args === undefined ? {} : { args: [...options.args] }),
-    command: options.command,
-    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
-    ...(options.env === undefined ? {} : { env: { ...options.env } }),
-    ...(options.maxBufferSize === undefined ? {} : { maxBufferSize: options.maxBufferSize }),
-    stderr: options.stderr ?? 'inherit',
-  });
-  return new SdkMcpSession(client, transport);
+  return new SdkMcpSession(() => ({
+    client: createClient(options.client, options.protocolNegotiation),
+    transport: new StdioClientTransport({
+      ...(options.args === undefined ? {} : { args: [...options.args] }),
+      command: options.command,
+      ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+      ...(options.env === undefined ? {} : { env: { ...options.env } }),
+      ...(options.maxBufferSize === undefined ? {} : { maxBufferSize: options.maxBufferSize }),
+      stderr: options.stderr ?? 'inherit',
+    }),
+  }));
 }
 
 export function createStreamableHttpMcpSession(
   options: StreamableHttpMcpSessionOptions,
 ): McpSession {
-  const client = createClient(options.client, options.protocolNegotiation);
-  const transport = new StreamableHTTPClientTransport(new URL(options.url), {
-    ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-    ...(options.headers === undefined ? {} : { requestInit: { headers: options.headers } }),
-  });
-  return new SdkMcpSession(client, transport);
+  return new SdkMcpSession(() => ({
+    client: createClient(options.client, options.protocolNegotiation),
+    transport: new StreamableHTTPClientTransport(new URL(options.url), {
+      ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+      ...(options.headers === undefined ? {} : { requestInit: { headers: options.headers } }),
+    }),
+  }));
 }
 
 function createClient(

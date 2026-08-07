@@ -69,10 +69,14 @@ export class McpToolClient {
     const connecting = this.#session
       .connect({ ...(signal === undefined ? {} : { signal }), timeoutMs: this.#requestTimeoutMs })
       .then(() => {
-        this.#state = 'connected';
+        if (this.#state !== 'closed') {
+          this.#state = 'connected';
+        }
       })
       .catch((error: unknown) => {
-        this.#state = 'disconnected';
+        if (this.#state !== 'closed') {
+          this.#state = 'disconnected';
+        }
         throw normalizeMcpError(error, 'connect', this.#serverId, signal, true);
       })
       .finally(() => {
@@ -96,6 +100,9 @@ export class McpToolClient {
         timeoutMs: this.#requestTimeoutMs,
       });
     } catch (error) {
+      if (!(error instanceof AiError) && options.signal?.aborted !== true) {
+        await this.#disconnectAfterFailure();
+      }
       throw normalizeMcpError(error, 'discover', this.#serverId, options.signal, true);
     }
     const names = new Set<string>();
@@ -145,16 +152,17 @@ export class McpToolClient {
     if (this.#state === 'closed') {
       return;
     }
-    if (this.#connectPromise !== undefined) {
-      await this.#connectPromise.catch(() => undefined);
-    }
+    this.#state = 'closed';
+    this.#discovery = undefined;
+    let closeError: unknown;
     try {
       await this.#session.close();
     } catch (error) {
-      throw normalizeMcpError(error, 'close', this.#serverId, undefined, false);
-    } finally {
-      this.#state = 'closed';
-      this.#discovery = undefined;
+      closeError = error;
+    }
+    await this.#connectPromise?.catch(() => undefined);
+    if (closeError !== undefined) {
+      throw normalizeMcpError(closeError, 'close', this.#serverId, undefined, false);
     }
   }
 
@@ -164,6 +172,7 @@ export class McpToolClient {
     signal: AbortSignal,
     deadline: string,
   ): Promise<ToolExecutionOutput> {
+    await this.connect(signal);
     const release = await this.#semaphore.acquire(signal, this.#serverId);
     try {
       const remainingMs = Date.parse(deadline) - Date.now();
@@ -180,6 +189,9 @@ export class McpToolClient {
           timeoutMs: Math.min(remainingMs, this.#requestTimeoutMs),
         });
       } catch (error) {
+        if (!(error instanceof AiError) && !signal.aborted) {
+          await this.#disconnectAfterFailure();
+        }
         throw normalizeMcpError(error, 'call_tool', this.#serverId, signal, false, tool.name);
       }
       if (result.isError === true) {
@@ -197,6 +209,14 @@ export class McpToolClient {
     } finally {
       release();
     }
+  }
+
+  async #disconnectAfterFailure(): Promise<void> {
+    if (this.#state === 'closed') {
+      return;
+    }
+    this.#state = 'disconnected';
+    await this.#session.close().catch(() => undefined);
   }
 }
 

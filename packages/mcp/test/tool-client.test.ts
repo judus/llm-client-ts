@@ -274,10 +274,13 @@ describe('McpToolClient', () => {
 
     const discoveryFailure = new FakeSession();
     discoveryFailure.listTools = () => Promise.reject(new Error('list failed'));
-    await expect(client(discoveryFailure).discover()).rejects.toMatchObject({
+    const failedDiscoveryClient = client(discoveryFailure);
+    await expect(failedDiscoveryClient.discover()).rejects.toMatchObject({
       code: 'mcp_operation_failed',
       retryable: true,
     });
+    expect(failedDiscoveryClient.state).toBe('disconnected');
+    expect(discoveryFailure.closes).toBe(1);
 
     const callFailure = new FakeSession();
     callFailure.callTool = () => Promise.reject(new Error('call failed'));
@@ -395,12 +398,10 @@ describe('McpToolClient', () => {
     };
     const first = tool.execute({}, context);
     const second = tool.execute({}, context);
-    await Promise.resolve();
-    expect(active).toBe(1);
+    await expect.poll(() => active).toBe(1);
     releases.shift()?.();
     await first;
-    await Promise.resolve();
-    expect(active).toBe(1);
+    await expect.poll(() => active).toBe(1);
     releases.shift()?.();
     await second;
     expect(maximum).toBe(1);

@@ -120,7 +120,7 @@ describe('SdkMcpSession', () => {
       { name: 'test-client', version: '1' },
       { versionNegotiation: { mode: 'legacy' } },
     );
-    const session = new SdkMcpSession(sdk, transport);
+    const session = new SdkMcpSession(() => ({ client: sdk, transport }));
     const options = { timeoutMs: 1_000 };
     await session.connect(options);
     await expect(session.listTools(options)).resolves.toEqual([
@@ -187,7 +187,8 @@ describe('SdkMcpSession', () => {
     Reflect.set(sdk, 'listTools', () =>
       Promise.resolve({ tools: [{ inputSchema: [], name: 'broken' }] }),
     );
-    const session = new SdkMcpSession(sdk, new FixtureTransport());
+    const session = new SdkMcpSession(() => ({ client: sdk, transport: new FixtureTransport() }));
+    await session.connect({ timeoutMs: 100 });
     await expect(session.listTools({ timeoutMs: 100 })).rejects.toMatchObject({
       code: 'invalid_mcp_json',
     });
@@ -203,15 +204,56 @@ describe('SdkMcpSession', () => {
   it('aborts a connection and closes its transport', async () => {
     const transport = new FixtureTransport();
     transport.start = () => new Promise(() => undefined);
-    const session = new SdkMcpSession(
-      new Client({ name: 'test-client', version: '1' }, { versionNegotiation: { mode: 'legacy' } }),
+    const session = new SdkMcpSession(() => ({
+      client: new Client(
+        { name: 'test-client', version: '1' },
+        { versionNegotiation: { mode: 'legacy' } },
+      ),
       transport,
-    );
+    }));
     const controller = new AbortController();
     controller.abort('stop');
     await expect(
       session.connect({ signal: controller.signal, timeoutMs: 1_000 }),
     ).rejects.toThrow();
+    expect(transport.closed).toBe(true);
+  });
+
+  it('deduplicates connections and rejects operations before connection', async () => {
+    let creations = 0;
+    const session = new SdkMcpSession(() => {
+      creations += 1;
+      return {
+        client: new Client(
+          { name: 'test-client', version: '1' },
+          { versionNegotiation: { mode: 'legacy' } },
+        ),
+        transport: new FixtureTransport(),
+      };
+    });
+    await expect(session.listTools({ timeoutMs: 100 })).rejects.toMatchObject({
+      code: 'mcp_session_not_connected',
+    });
+    await Promise.all([session.connect({ timeoutMs: 100 }), session.connect({ timeoutMs: 100 })]);
+    await session.connect({ timeoutMs: 100 });
+    expect(creations).toBe(1);
+    await session.close();
+  });
+
+  it('aborts an in-progress connection when closed', async () => {
+    const transport = new FixtureTransport();
+    transport.start = () => new Promise(() => undefined);
+    const session = new SdkMcpSession(() => ({
+      client: new Client(
+        { name: 'test-client', version: '1' },
+        { versionNegotiation: { mode: 'legacy' } },
+      ),
+      transport,
+    }));
+    const connecting = session.connect({ timeoutMs: 10_000 });
+    const rejected = expect(connecting).rejects.toThrow('MCP session closed.');
+    await session.close();
+    await rejected;
     expect(transport.closed).toBe(true);
   });
 });

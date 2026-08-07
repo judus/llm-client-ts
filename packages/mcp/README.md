@@ -43,7 +43,7 @@ try {
 - Cancellation and caller deadlines propagate to MCP calls.
 - MCP tool-level, transport, cancellation, validation, and shutdown failures become typed core errors with diagnostic causes.
 - Text, image, audio, embedded resource, and resource-link results convert into core content.
-- A failed connection may be retried; `close()` is terminal and idempotent.
+- A failed connection or transport can reconnect with a fresh SDK transport; an uncertain tool call is never replayed automatically. `close()` is terminal and idempotent.
 
 Policy annotations come only from local configuration. Remote metadata is descriptive input and is never treated as an authorization decision. The core policy engine remains responsible for approval and execution decisions.
 
