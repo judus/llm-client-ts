@@ -84,4 +84,12 @@ Summary contracts retain source-message boundaries, prompt version, generating m
 
 Environment bindings are routing records, not new prompt identities. Moving `production` from version `1.2.0` to `1.3.0` changes selection without rewriting either immutable definition.
 
+## Approvals
+
+`ApprovalCoordinator` creates, resolves, and verifies UI-neutral approval requests. Every request contains the exact proposed action, a canonical SHA-256 action hash, an expiry, and a description suitable for the approving surface. Decisions record the actor, time, outcome, and optional reason.
+
+Verification succeeds only while an approval remains valid and only for the same action kind, target, arguments, and context. Changing any of those fields after approval produces an authorization error. Pending, denied, expired, missing, duplicate, and stale decisions have distinct normalized error codes.
+
+`InMemoryApprovalStore` provides reference single-decision semantics and defensive copies. Production applications should inject durable storage with the same atomic create and decide behavior. An approval grants authority only for its bound action; it does not relax workflow limits or authorize adjacent operations.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.

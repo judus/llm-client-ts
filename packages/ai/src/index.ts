@@ -1,5 +1,11 @@
 export { AiClient } from './client.js';
 export { BoundedAgentRuntime } from './agent-runtime.js';
+export {
+  ApprovalCoordinator,
+  InMemoryApprovalStore,
+  hashApprovalAction,
+  toolApprovalAction,
+} from './approval.js';
 export { defaultRunLimits } from './agent-types.js';
 export { CharacterTokenEstimator, PairSafeHistorySelector } from './context-selection.js';
 export { AiError, UnsupportedCapabilityError, serializeAiError } from './error.js';
@@ -22,6 +28,17 @@ export type {
   RunLimits,
 } from './agent-types.js';
 export type { AgentRuntimeOptions } from './agent-runtime.js';
+export type {
+  ApprovalAction,
+  ApprovalActionKind,
+  ApprovalCoordinatorOptions,
+  ApprovalRequest,
+  ApprovalRequestInput,
+  ApprovalResolution,
+  ApprovalStore,
+  DecideApproval,
+  RecordApprovalDecision,
+} from './approval.js';
 export type {
   ContextOmissionReason,
   ContextSelection,

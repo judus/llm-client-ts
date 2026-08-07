@@ -135,6 +135,94 @@ export interface AppendMessagesOptions {
     readonly expectedRevision: number;
 }
 
+// @public
+export interface ApprovalAction {
+    // (undocumented)
+    readonly arguments: JsonObject;
+    // (undocumented)
+    readonly context?: JsonObject;
+    // (undocumented)
+    readonly kind: ApprovalActionKind;
+    // (undocumented)
+    readonly target: string;
+}
+
+// @public (undocumented)
+export type ApprovalActionKind = 'custom' | 'external_write' | 'provider_file_upload' | 'sensitive_document_access' | 'tool_call';
+
+// @public
+export class ApprovalCoordinator {
+    constructor(options?: ApprovalCoordinatorOptions);
+    // (undocumented)
+    decide(command: DecideApproval): Promise<ApprovalRequest>;
+    // (undocumented)
+    request(input: ApprovalRequestInput): Promise<ApprovalRequest>;
+    // (undocumented)
+    verify(requestId: string, action: ApprovalAction): Promise<ApprovalRequest>;
+}
+
+// @public (undocumented)
+export interface ApprovalCoordinatorOptions {
+    // (undocumented)
+    readonly clock?: () => Date;
+    // (undocumented)
+    readonly idGenerator?: () => string;
+    // (undocumented)
+    readonly store?: ApprovalStore;
+}
+
+// @public (undocumented)
+export interface ApprovalRequest {
+    // (undocumented)
+    readonly action: ApprovalAction;
+    // (undocumented)
+    readonly actionHash: string;
+    // (undocumented)
+    readonly createdAt: string;
+    // (undocumented)
+    readonly description: string;
+    // (undocumented)
+    readonly expiresAt: string;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly resolution?: ApprovalResolution;
+    // (undocumented)
+    readonly status: 'approved' | 'denied' | 'pending';
+}
+
+// @public (undocumented)
+export interface ApprovalRequestInput {
+    // (undocumented)
+    readonly action: ApprovalAction;
+    // (undocumented)
+    readonly description: string;
+    // (undocumented)
+    readonly expiresAt: string;
+}
+
+// @public (undocumented)
+export interface ApprovalResolution {
+    // (undocumented)
+    readonly actorId: string;
+    // (undocumented)
+    readonly decidedAt: string;
+    // (undocumented)
+    readonly decision: 'approved' | 'denied';
+    // (undocumented)
+    readonly reason?: string;
+}
+
+// @public (undocumented)
+export interface ApprovalStore {
+    // (undocumented)
+    create(request: ApprovalRequest): Promise<void>;
+    // (undocumented)
+    decide(command: RecordApprovalDecision): Promise<ApprovalRequest>;
+    // (undocumented)
+    get(id: string): Promise<ApprovalRequest | undefined>;
+}
+
 // @public (undocumented)
 export interface AudioPart {
     // (undocumented)
@@ -316,6 +404,22 @@ export interface CreateConversation {
 }
 
 // @public (undocumented)
+export interface DecideApproval {
+    // (undocumented)
+    readonly actorId: string;
+    // (undocumented)
+    readonly decidedAt?: string;
+    // (undocumented)
+    readonly decision: 'approved' | 'denied';
+    // (undocumented)
+    readonly expectedActionHash: string;
+    // (undocumented)
+    readonly reason?: string;
+    // (undocumented)
+    readonly requestId: string;
+}
+
+// @public (undocumented)
 export const defaultRunLimits: RunLimits;
 
 // @public (undocumented)
@@ -336,6 +440,9 @@ export interface DocumentPart {
 export type FinishReason = 'cancelled' | 'content_filter' | 'error' | 'length' | 'stop' | 'tool_calls' | 'unknown';
 
 // @public (undocumented)
+export function hashApprovalAction(action: ApprovalAction): Promise<string>;
+
+// @public (undocumented)
 export interface ImagePart {
     // (undocumented)
     readonly detail?: 'auto' | 'high' | 'low';
@@ -345,6 +452,16 @@ export interface ImagePart {
     readonly source: BinarySource;
     // (undocumented)
     readonly type: 'image';
+}
+
+// @public
+export class InMemoryApprovalStore implements ApprovalStore {
+    // (undocumented)
+    create(request: ApprovalRequest): Promise<void>;
+    // (undocumented)
+    decide(command: RecordApprovalDecision): Promise<ApprovalRequest>;
+    // (undocumented)
+    get(id: string): Promise<ApprovalRequest | undefined>;
 }
 
 // @public
@@ -670,6 +787,22 @@ export type PromptSelector = {
     readonly version: string;
 };
 
+// @public
+export interface RecordApprovalDecision {
+    // (undocumented)
+    readonly actorId: string;
+    // (undocumented)
+    readonly decidedAt: string;
+    // (undocumented)
+    readonly decision: 'approved' | 'denied';
+    // (undocumented)
+    readonly expectedActionHash: string;
+    // (undocumented)
+    readonly reason?: string;
+    // (undocumented)
+    readonly requestId: string;
+}
+
 // @public (undocumented)
 export interface ReducedModelStream {
     // (undocumented)
@@ -992,6 +1125,9 @@ export interface ToolAnnotations {
     // (undocumented)
     readonly requiresApproval?: boolean;
 }
+
+// @public (undocumented)
+export function toolApprovalAction(agentId: string, runId: string, call: ToolCall): ApprovalAction;
 
 // @public (undocumented)
 export interface ToolCall {
