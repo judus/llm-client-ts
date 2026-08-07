@@ -78,4 +78,10 @@ Pass a store as `conversations` when constructing `BoundedAgentRuntime` to conti
 
 Summary contracts retain source-message boundaries, prompt version, generating model, timestamp, and whether durable sources remain available.
 
+## Versioned prompts
+
+`PromptRegistry` stores immutable `name@version` definitions. Variables are validated with JSON Schema draft 2020-12 before rendering, nested placeholders are resolved explicitly, and object/array interpolation is rejected. Each render returns its exact version and a deterministic SHA-256 fingerprint.
+
+Environment bindings are routing records, not new prompt identities. Moving `production` from version `1.2.0` to `1.3.0` changes selection without rewriting either immutable definition.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.

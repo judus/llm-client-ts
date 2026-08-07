@@ -4,6 +4,7 @@ export { defaultRunLimits } from './agent-types.js';
 export { CharacterTokenEstimator, PairSafeHistorySelector } from './context-selection.js';
 export { AiError, UnsupportedCapabilityError, serializeAiError } from './error.js';
 export { InMemoryConversationStore } from './conversation-store.js';
+export { PromptRegistry } from './prompt-registry.js';
 export { SafeDefaultToolPolicy } from './policy.js';
 export { reduceModelStream } from './reduce-stream.js';
 export { ToolRegistry } from './tool-registry.js';
@@ -64,6 +65,13 @@ export type {
 } from './event.js';
 export type { JsonArray, JsonObject, JsonPrimitive, JsonSchema, JsonValue } from './json.js';
 export type { ConversationMessage, MessageRole } from './message.js';
+export type {
+  PromptDefinition,
+  PromptEnvironmentBinding,
+  PromptRef,
+  PromptSelector,
+  RenderedPrompt,
+} from './prompt-registry.js';
 export type { PolicyDecision, PolicyEvaluationContext, ToolPolicy } from './policy.js';
 export type {
   RunBudgetUpdatedEvent,

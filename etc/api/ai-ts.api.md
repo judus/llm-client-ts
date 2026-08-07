@@ -617,6 +617,60 @@ export interface PolicyEvaluationContext {
 }
 
 // @public (undocumented)
+export interface PromptDefinition extends PromptRef {
+    // (undocumented)
+    readonly description?: string;
+    // (undocumented)
+    readonly metadata?: JsonObject;
+    // (undocumented)
+    readonly template: string;
+    // (undocumented)
+    readonly variablesSchema: JsonSchema;
+}
+
+// @public (undocumented)
+export interface PromptEnvironmentBinding {
+    // (undocumented)
+    readonly environment: string;
+    // (undocumented)
+    readonly name: string;
+    // (undocumented)
+    readonly version: string;
+}
+
+// @public (undocumented)
+export interface PromptRef {
+    // (undocumented)
+    readonly name: string;
+    // (undocumented)
+    readonly version: string;
+}
+
+// @public
+export class PromptRegistry {
+    constructor(definitions?: readonly PromptDefinition[]);
+    // (undocumented)
+    bindEnvironment(binding: PromptEnvironmentBinding): void;
+    // (undocumented)
+    get(reference: PromptRef): PromptDefinition | undefined;
+    // (undocumented)
+    register(definition: PromptDefinition): void;
+    // (undocumented)
+    render(selector: PromptSelector, variables: JsonObject): Promise<RenderedPrompt>;
+    // (undocumented)
+    resolve(selector: PromptSelector): PromptDefinition;
+}
+
+// @public (undocumented)
+export type PromptSelector = {
+    readonly environment: string;
+    readonly name: string;
+} | {
+    readonly name: string;
+    readonly version: string;
+};
+
+// @public (undocumented)
 export interface ReducedModelStream {
     // (undocumented)
     readonly response: ModelResponse;
@@ -633,6 +687,16 @@ export interface RefusalPart {
     readonly reason: string;
     // (undocumented)
     readonly type: 'refusal';
+}
+
+// @public (undocumented)
+export interface RenderedPrompt extends PromptRef {
+    // (undocumented)
+    readonly fingerprint: string;
+    // (undocumented)
+    readonly text: string;
+    // (undocumented)
+    readonly variables: JsonObject;
 }
 
 // @public (undocumented)
