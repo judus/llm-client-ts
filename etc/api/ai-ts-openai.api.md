@@ -4,14 +4,76 @@
 
 ```ts
 
+import { CallOptions } from '@maduser/ai-ts';
 import type { ModelCapabilities } from '@maduser/ai-ts';
 import { ModelProvider } from '@maduser/ai-ts';
+import { ProviderFileAdapter } from '@maduser/ai-ts';
+import { ProviderFileUpload } from '@maduser/ai-ts';
+import { ProviderFileUploadRequest } from '@maduser/ai-ts';
 
 // @public
 export function createOpenAIProvider(options?: OpenAIProviderOptions): ModelProvider;
 
 // @public
 export function defaultOpenAIModelCapabilities(): ModelCapabilities;
+
+// @public
+export class OpenAIFileAdapter implements ProviderFileAdapter {
+    constructor(options: OpenAIFileAdapterOptions, dependencies?: OpenAIFileAdapterDependencies);
+    // (undocumented)
+    delete(fileId: string, scopeId: string, options?: CallOptions): Promise<void>;
+    // (undocumented)
+    readonly provider = "openai";
+    // (undocumented)
+    upload(request: ProviderFileUploadRequest, options?: CallOptions): Promise<ProviderFileUpload>;
+}
+
+// @public (undocumented)
+export interface OpenAIFileAdapterDependencies {
+    // (undocumented)
+    readonly transport: OpenAIFileTransport;
+}
+
+// @public (undocumented)
+export interface OpenAIFileAdapterOptions extends OpenAIProviderOptions {
+    readonly expiresAfterSeconds?: number;
+    readonly scopeId: string;
+}
+
+// @public (undocumented)
+export interface OpenAIFileCreateRequest {
+    // (undocumented)
+    readonly bytes: Uint8Array;
+    // (undocumented)
+    readonly expiresAfterSeconds?: number;
+    // (undocumented)
+    readonly filename: string;
+    // (undocumented)
+    readonly mimeType: string;
+    // (undocumented)
+    readonly purpose: OpenAIFilePurpose;
+}
+
+// @public (undocumented)
+export interface OpenAIFileCreateResult {
+    // (undocumented)
+    readonly expiresAt?: number;
+    // (undocumented)
+    readonly fileId: string;
+}
+
+// @public (undocumented)
+export type OpenAIFilePurpose = 'assistants' | 'batch' | 'evals' | 'fine-tune' | 'user_data' | 'vision';
+
+// @public (undocumented)
+export interface OpenAIFileTransport {
+    // (undocumented)
+    create(request: OpenAIFileCreateRequest, options: CallOptions): Promise<OpenAIFileCreateResult>;
+    // (undocumented)
+    delete(fileId: string, options: CallOptions): Promise<{
+        readonly deleted: boolean;
+    }>;
+}
 
 // @public
 export interface OpenAIProviderOptions {
