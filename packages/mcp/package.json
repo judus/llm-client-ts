@@ -29,5 +29,9 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "dependencies": {
+    "@maduser/ai-ts": "workspace:*",
+    "@modelcontextprotocol/client": "2.0.0"
   }
 }

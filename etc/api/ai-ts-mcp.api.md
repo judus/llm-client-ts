@@ -4,6 +4,207 @@
 
 ```ts
 
+import type { JsonObject } from '@maduser/ai-ts';
+import type { JsonSchema } from '@maduser/ai-ts';
+import type { JsonValue } from '@maduser/ai-ts';
+import { LocalTool } from '@maduser/ai-ts';
+import type { ToolAnnotations } from '@maduser/ai-ts';
+import { ToolRegistry } from '@maduser/ai-ts';
+
+// @public (undocumented)
+export function createStdioMcpSession(options: StdioMcpSessionOptions): McpSession;
+
+// @public (undocumented)
+export function createStreamableHttpMcpSession(options: StreamableHttpMcpSessionOptions): McpSession;
+
+// @public (undocumented)
+export interface McpClientIdentity {
+    // (undocumented)
+    readonly name: string;
+    // (undocumented)
+    readonly version: string;
+}
+
+// @public (undocumented)
+export type McpClientState = 'closed' | 'connected' | 'connecting' | 'disconnected';
+
+// @public (undocumented)
+export type McpContentBlock = {
+    readonly data: string;
+    readonly mimeType: string;
+    readonly type: 'audio' | 'image';
+} | {
+    readonly resource: {
+        readonly blob: string;
+        readonly mimeType?: string;
+        readonly uri: string;
+    } | {
+        readonly mimeType?: string;
+        readonly text: string;
+        readonly uri: string;
+    };
+    readonly type: 'resource';
+} | {
+    readonly mimeType?: string;
+    readonly name: string;
+    readonly title?: string;
+    readonly type: 'resource_link';
+    readonly uri: string;
+} | {
+    readonly text: string;
+    readonly type: 'text';
+};
+
+// @public (undocumented)
+export interface McpOperationOptions {
+    // (undocumented)
+    readonly signal?: AbortSignal;
+    // (undocumented)
+    readonly timeoutMs: number;
+}
+
+// @public (undocumented)
+export interface McpRemoteTool {
+    // (undocumented)
+    readonly description?: string;
+    // (undocumented)
+    readonly inputSchema: JsonSchema;
+    // (undocumented)
+    readonly name: string;
+    // (undocumented)
+    readonly outputSchema?: JsonSchema;
+}
+
+// @public (undocumented)
+export interface McpRemoteToolResult {
+    // (undocumented)
+    readonly content: readonly McpContentBlock[];
+    // (undocumented)
+    readonly isError?: boolean;
+    // (undocumented)
+    readonly structuredContent?: JsonValue;
+}
+
+// @public
+export interface McpSession {
+    // (undocumented)
+    callTool(name: string, arguments_: JsonObject, options: McpOperationOptions): Promise<McpRemoteToolResult>;
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    connect(options: McpOperationOptions): Promise<void>;
+    // (undocumented)
+    listTools(options: McpOperationOptions): Promise<readonly McpRemoteTool[]>;
+}
+
+// @public
+export class McpToolBroker {
+    constructor(options: McpToolBrokerOptions);
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    discover(options?: {
+        readonly force?: boolean;
+        readonly signal?: AbortSignal;
+    }): Promise<readonly LocalTool[]>;
+    // (undocumented)
+    invalidate(): void;
+    // (undocumented)
+    registry(options?: {
+        readonly force?: boolean;
+        readonly signal?: AbortSignal;
+    }): Promise<ToolRegistry>;
+}
+
+// @public (undocumented)
+export interface McpToolBrokerOptions {
+    // (undocumented)
+    readonly clients: readonly McpToolClient[];
+}
+
+// @public
+export class McpToolClient {
+    constructor(options: McpToolClientOptions);
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    connect(signal?: AbortSignal): Promise<void>;
+    // (undocumented)
+    discover(options?: {
+        readonly force?: boolean;
+        readonly signal?: AbortSignal;
+    }): Promise<McpToolDiscovery>;
+    // (undocumented)
+    invalidate(): void;
+    // (undocumented)
+    get serverId(): string;
+    // (undocumented)
+    get state(): McpClientState;
+}
+
+// @public (undocumented)
+export interface McpToolClientOptions {
+    readonly annotations?: Readonly<Record<string, ToolAnnotations>>;
+    readonly clock?: () => Date;
+    // (undocumented)
+    readonly maxConcurrency?: number;
+    // (undocumented)
+    readonly namespace: string;
+    // (undocumented)
+    readonly requestTimeoutMs?: number;
+    // (undocumented)
+    readonly serverId: string;
+    // (undocumented)
+    readonly session: McpSession;
+}
+
+// @public (undocumented)
+export interface McpToolDiscovery {
+    // (undocumented)
+    readonly discoveredAt: string;
+    // (undocumented)
+    readonly serverId: string;
+    // (undocumented)
+    readonly tools: readonly LocalTool[];
+}
+
+// @public (undocumented)
+export function qualifyMcpToolName(namespace: string, toolName: string): string;
+
+// @public (undocumented)
+export interface StdioMcpSessionOptions {
+    // (undocumented)
+    readonly args?: readonly string[];
+    // (undocumented)
+    readonly client: McpClientIdentity;
+    // (undocumented)
+    readonly command: string;
+    // (undocumented)
+    readonly cwd?: string;
+    // (undocumented)
+    readonly env?: Readonly<Record<string, string>>;
+    // (undocumented)
+    readonly maxBufferSize?: number;
+    // (undocumented)
+    readonly protocolNegotiation?: 'auto' | 'legacy';
+    // (undocumented)
+    readonly stderr?: 'inherit' | 'pipe';
+}
+
+// @public (undocumented)
+export interface StreamableHttpMcpSessionOptions {
+    // (undocumented)
+    readonly client: McpClientIdentity;
+    // (undocumented)
+    readonly fetch?: typeof globalThis.fetch;
+    // (undocumented)
+    readonly headers?: Readonly<Record<string, string>>;
+    // (undocumented)
+    readonly protocolNegotiation?: 'auto' | 'legacy';
+    // (undocumented)
+    readonly url: string | URL;
+}
+
 // (No @packageDocumentation comment for this package)
 
 ```
