@@ -1,7 +1,9 @@
 export { AiClient } from './client.js';
 export { BoundedAgentRuntime } from './agent-runtime.js';
 export { defaultRunLimits } from './agent-types.js';
+export { CharacterTokenEstimator, PairSafeHistorySelector } from './context-selection.js';
 export { AiError, UnsupportedCapabilityError, serializeAiError } from './error.js';
+export { InMemoryConversationStore } from './conversation-store.js';
 export { SafeDefaultToolPolicy } from './policy.js';
 export { reduceModelStream } from './reduce-stream.js';
 export { ToolRegistry } from './tool-registry.js';
@@ -19,6 +21,22 @@ export type {
   RunLimits,
 } from './agent-types.js';
 export type { AgentRuntimeOptions } from './agent-runtime.js';
+export type {
+  ContextOmissionReason,
+  ContextSelection,
+  ContextSelectionOptions,
+  OmittedContextMessage,
+  TokenEstimator,
+} from './context-selection.js';
+export type {
+  AppendMessagesOptions,
+  Conversation,
+  ConversationSnapshot,
+  ConversationStore,
+  CreateConversation,
+  InMemoryConversationStoreOptions,
+  MessageQuery,
+} from './conversation-store.js';
 export type {
   AudioPart,
   BinarySource,
@@ -79,6 +97,13 @@ export type {
 export type { ModelProvider } from './provider.js';
 export type { ReducedModelStream } from './reduce-stream.js';
 export type { ToolAnnotations, ToolCall, ToolChoice, ToolDefinition } from './tool.js';
+export type {
+  ConversationSummarizer,
+  ConversationSummary,
+  SummarizationOptions,
+  SummarizationRequest,
+  SummaryLineage,
+} from './summary.js';
 export type {
   LocalTool,
   ToolExecutionContext,

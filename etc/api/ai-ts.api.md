@@ -120,6 +120,12 @@ export interface AiErrorOptions {
 }
 
 // @public (undocumented)
+export interface AppendMessagesOptions {
+    // (undocumented)
+    readonly expectedRevision: number;
+}
+
+// @public (undocumented)
 export interface AudioPart {
     // (undocumented)
     readonly channels?: number;
@@ -172,8 +178,54 @@ export interface CallOptions {
     readonly traceContext?: JsonObject;
 }
 
+// @public
+export class CharacterTokenEstimator implements TokenEstimator {
+    constructor(charactersPerToken?: number);
+    // (undocumented)
+    estimate(message: ConversationMessage): number;
+}
+
 // @public (undocumented)
 export type ContentPart = AudioPart | DocumentPart | ImagePart | RefusalPart | TextPart | ToolCallPart | ToolResultPart;
+
+// @public (undocumented)
+export type ContextOmissionReason = 'budget' | 'incomplete_tool_group' | 'orphan_tool_result';
+
+// @public (undocumented)
+export interface ContextSelection {
+    // (undocumented)
+    readonly availableInputTokens: number;
+    // (undocumented)
+    readonly estimatedInputTokens: number;
+    // (undocumented)
+    readonly messages: readonly ConversationMessage[];
+    // (undocumented)
+    readonly omitted: readonly OmittedContextMessage[];
+}
+
+// @public (undocumented)
+export interface ContextSelectionOptions {
+    // (undocumented)
+    readonly maxContextTokens: number;
+    // (undocumented)
+    readonly reserveOutputTokens: number;
+    // (undocumented)
+    readonly reserveToolResultTokens: number;
+}
+
+// @public (undocumented)
+export interface Conversation {
+    // (undocumented)
+    readonly createdAt: string;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly metadata?: JsonObject;
+    // (undocumented)
+    readonly revision: number;
+    // (undocumented)
+    readonly updatedAt: string;
+}
 
 // @public
 export interface ConversationMessage {
@@ -193,6 +245,64 @@ export interface ConversationMessage {
     readonly role: MessageRole;
     // (undocumented)
     readonly runId?: string;
+}
+
+// @public (undocumented)
+export interface ConversationSnapshot {
+    // (undocumented)
+    readonly conversation: Conversation;
+    // (undocumented)
+    readonly messages: readonly ConversationMessage[];
+}
+
+// @public (undocumented)
+export interface ConversationStore {
+    // (undocumented)
+    append(id: string, messages: readonly ConversationMessage[], options: AppendMessagesOptions): Promise<Conversation>;
+    // (undocumented)
+    create(input?: CreateConversation): Promise<Conversation>;
+    // (undocumented)
+    get(id: string): Promise<Conversation | undefined>;
+    // (undocumented)
+    listMessages(id: string, query?: MessageQuery): Promise<readonly ConversationMessage[]>;
+    // (undocumented)
+    snapshot(id: string, query?: MessageQuery): Promise<ConversationSnapshot | undefined>;
+}
+
+// @public (undocumented)
+export interface ConversationSummarizer {
+    // (undocumented)
+    summarize(request: SummarizationRequest, options?: SummarizationOptions): Promise<ConversationSummary>;
+}
+
+// @public (undocumented)
+export interface ConversationSummary {
+    // (undocumented)
+    readonly conversationId: string;
+    // (undocumented)
+    readonly createdAt: string;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly lineage: SummaryLineage;
+    // (undocumented)
+    readonly model: ModelSelector;
+    // (undocumented)
+    readonly promptName: string;
+    // (undocumented)
+    readonly promptVersion: string;
+    // (undocumented)
+    readonly structuredState?: JsonObject;
+    // (undocumented)
+    readonly text: string;
+}
+
+// @public (undocumented)
+export interface CreateConversation {
+    // (undocumented)
+    readonly id?: string;
+    // (undocumented)
+    readonly metadata?: JsonObject;
 }
 
 // @public (undocumented)
@@ -228,6 +338,29 @@ export interface ImagePart {
 }
 
 // @public
+export class InMemoryConversationStore implements ConversationStore {
+    constructor(options?: InMemoryConversationStoreOptions);
+    // (undocumented)
+    append(id: string, messages: readonly ConversationMessage[], options: AppendMessagesOptions): Promise<Conversation>;
+    // (undocumented)
+    create(input?: CreateConversation): Promise<Conversation>;
+    // (undocumented)
+    get(id: string): Promise<Conversation | undefined>;
+    // (undocumented)
+    listMessages(id: string, query?: MessageQuery): Promise<readonly ConversationMessage[]>;
+    // (undocumented)
+    snapshot(id: string, query?: MessageQuery): Promise<ConversationSnapshot | undefined>;
+}
+
+// @public (undocumented)
+export interface InMemoryConversationStoreOptions {
+    // (undocumented)
+    readonly clock?: () => Date;
+    // (undocumented)
+    readonly idGenerator?: () => string;
+}
+
+// @public
 export type JsonArray = readonly JsonValue[];
 
 // @public
@@ -251,6 +384,18 @@ export interface LocalTool {
     readonly definition: ToolDefinition;
     // (undocumented)
     readonly execute: ToolHandler;
+}
+
+// @public (undocumented)
+export interface MessageQuery {
+    // (undocumented)
+    readonly afterId?: string;
+    // (undocumented)
+    readonly beforeId?: string;
+    // (undocumented)
+    readonly limit?: number;
+    // (undocumented)
+    readonly order?: 'ascending' | 'descending';
 }
 
 // @public (undocumented)
@@ -417,6 +562,21 @@ export interface ModelUsageUpdatedEvent extends ModelEventBase {
 export interface Money {
     readonly amount: string;
     readonly currency: string;
+}
+
+// @public (undocumented)
+export interface OmittedContextMessage {
+    // (undocumented)
+    readonly messageId: string;
+    // (undocumented)
+    readonly reason: ContextOmissionReason;
+}
+
+// @public
+export class PairSafeHistorySelector {
+    constructor(estimator?: TokenEstimator);
+    // (undocumented)
+    select(messages: readonly ConversationMessage[], options: ContextSelectionOptions): ContextSelection;
 }
 
 // @public (undocumented)
@@ -694,6 +854,36 @@ export interface SerializedAiError {
 }
 
 // @public (undocumented)
+export interface SummarizationOptions {
+    // (undocumented)
+    readonly signal?: AbortSignal;
+}
+
+// @public (undocumented)
+export interface SummarizationRequest {
+    // (undocumented)
+    readonly conversationId: string;
+    // (undocumented)
+    readonly firstMessageId: string;
+    // (undocumented)
+    readonly lastMessageId: string;
+    // (undocumented)
+    readonly messages: readonly ConversationMessage[];
+    // (undocumented)
+    readonly sourceMessagesRetained: boolean;
+}
+
+// @public (undocumented)
+export interface SummaryLineage {
+    // (undocumented)
+    readonly firstMessageId: string;
+    // (undocumented)
+    readonly lastMessageId: string;
+    // (undocumented)
+    readonly sourceMessagesRetained: boolean;
+}
+
+// @public (undocumented)
 export type TerminalModelEvent = ModelResponseCompletedEvent | ModelResponseFailedEvent;
 
 // @public (undocumented)
@@ -707,6 +897,12 @@ export interface TextPart {
     readonly text: string;
     // (undocumented)
     readonly type: 'text';
+}
+
+// @public (undocumented)
+export interface TokenEstimator {
+    // (undocumented)
+    estimate(message: ConversationMessage): number;
 }
 
 // @public (undocumented)

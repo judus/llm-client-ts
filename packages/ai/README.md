@@ -68,4 +68,12 @@ Inputs are validated with JSON Schema draft 2020-12 before policy evaluation or 
 
 Every run has finite model-step, tool-call, per-tool, parallelism, token, repeated-failure, and wall-clock limits. Cancellation reaches both model providers and tool handlers through `AbortSignal`.
 
+## Conversations and context
+
+`ConversationStore` is the persistence port. `InMemoryConversationStore` is the reference implementation and requires an expected revision on every append, preventing concurrent runs from silently interleaving message batches. `snapshot()` reads metadata, revision, and messages together.
+
+`PairSafeHistorySelector` is independent of storage. It reserves output/tool capacity, retains system and developer instructions, prefers recent history, and never separates assistant tool calls from their result messages. Its result lists every omitted message and reason. Applications should inject a provider-aware `TokenEstimator`; `CharacterTokenEstimator` is a deterministic fallback.
+
+Summary contracts retain source-message boundaries, prompt version, generating model, timestamp, and whether durable sources remain available.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.
