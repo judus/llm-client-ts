@@ -1,0 +1,36 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreDependencies": [
+    "@arethetypeswrong/cli",
+    "@stryker-mutator/core",
+    "@stryker-mutator/vitest-runner",
+    "publint",
+    "tsx",
+  ],
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.mjs"],
+      "project": ["scripts/*.mjs", "*.ts"],
+    },
+    "packages/ai": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"],
+    },
+    "packages/openai": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"],
+    },
+    "packages/testing": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"],
+    },
+    "packages/bedrock": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"],
+    },
+    "packages/mcp": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"],
+    },
+  },
+}
