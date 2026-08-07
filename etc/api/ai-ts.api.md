@@ -7,6 +7,79 @@
 // @public
 export function addUsage(left: Usage, right: Usage): Usage;
 
+// @public (undocumented)
+export interface AgentDefinition {
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    readonly instructions?: string;
+    // (undocumented)
+    readonly model: ModelSelector;
+    // (undocumented)
+    readonly parallelToolCalls?: boolean;
+    // (undocumented)
+    readonly tools?: readonly string[];
+    // (undocumented)
+    readonly version?: string;
+}
+
+// @public (undocumented)
+export interface AgentResult {
+    // (undocumented)
+    readonly error?: SerializedAiError;
+    // (undocumented)
+    readonly messages: readonly ConversationMessage[];
+    // (undocumented)
+    readonly modelSteps: number;
+    // (undocumented)
+    readonly output?: ConversationMessage;
+    // (undocumented)
+    readonly runId: string;
+    // (undocumented)
+    readonly status: AgentRunStatus;
+    // (undocumented)
+    readonly toolCalls: number;
+    // (undocumented)
+    readonly usage: Usage;
+}
+
+// @public (undocumented)
+export interface AgentRunOptions {
+    // (undocumented)
+    readonly signal?: AbortSignal;
+}
+
+// @public (undocumented)
+export interface AgentRunRequest {
+    // (undocumented)
+    readonly agent: AgentDefinition;
+    // (undocumented)
+    readonly context?: JsonObject;
+    // (undocumented)
+    readonly conversationId?: string;
+    // (undocumented)
+    readonly input: readonly ContentPart[];
+    // (undocumented)
+    readonly limits?: Partial<RunLimits>;
+}
+
+// @public (undocumented)
+export type AgentRunStatus = 'cancelled' | 'completed' | 'failed' | 'limit_exceeded';
+
+// @public (undocumented)
+export interface AgentRuntimeOptions {
+    // (undocumented)
+    readonly client: AiClient;
+    // (undocumented)
+    readonly clock?: () => Date;
+    // (undocumented)
+    readonly idGenerator?: () => string;
+    // (undocumented)
+    readonly policy?: ToolPolicy;
+    // (undocumented)
+    readonly tools?: ToolRegistry;
+}
+
 // @public
 export class AiClient {
     constructor(provider: ModelProvider);
@@ -78,6 +151,15 @@ export type BinarySource = {
     readonly type: 'provider_file';
 };
 
+// @public
+export class BoundedAgentRuntime {
+    constructor(options: AgentRuntimeOptions);
+    // (undocumented)
+    run(request: AgentRunRequest, options?: AgentRunOptions): Promise<AgentResult>;
+    // (undocumented)
+    stream(request: AgentRunRequest, options?: AgentRunOptions): AsyncGenerator<RunEvent, void, void>;
+}
+
 // @public (undocumented)
 export interface CallOptions {
     // (undocumented)
@@ -112,6 +194,9 @@ export interface ConversationMessage {
     // (undocumented)
     readonly runId?: string;
 }
+
+// @public (undocumented)
+export const defaultRunLimits: RunLimits;
 
 // @public (undocumented)
 export interface DocumentPart {
@@ -159,6 +244,14 @@ export type JsonSchema = JsonObject;
 
 // @public
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+
+// @public (undocumented)
+export interface LocalTool {
+    // (undocumented)
+    readonly definition: ToolDefinition;
+    // (undocumented)
+    readonly execute: ToolHandler;
+}
 
 // @public (undocumented)
 export type MessageRole = 'assistant' | 'developer' | 'system' | 'tool' | 'user';
@@ -327,6 +420,33 @@ export interface Money {
 }
 
 // @public (undocumented)
+export type PolicyDecision = {
+    readonly outcome: 'allow';
+    readonly reason: string;
+} | {
+    readonly outcome: 'deny';
+    readonly reason: string;
+} | {
+    readonly outcome: 'dry_run';
+    readonly reason: string;
+    readonly result?: ToolExecutionOutput;
+};
+
+// @public (undocumented)
+export interface PolicyEvaluationContext {
+    // (undocumented)
+    readonly agentId: string;
+    // (undocumented)
+    readonly call: ToolCall;
+    // (undocumented)
+    readonly context?: JsonObject;
+    // (undocumented)
+    readonly runId: string;
+    // (undocumented)
+    readonly tool: ToolDefinition;
+}
+
+// @public (undocumented)
 export interface ReducedModelStream {
     // (undocumented)
     readonly response: ModelResponse;
@@ -370,6 +490,183 @@ export type ResponseFormat = {
 };
 
 // @public (undocumented)
+export interface RunBudgetSnapshot {
+    // (undocumented)
+    readonly elapsedMs: number;
+    // (undocumented)
+    readonly inputTokens?: number;
+    // (undocumented)
+    readonly modelSteps: number;
+    // (undocumented)
+    readonly outputTokens?: number;
+    // (undocumented)
+    readonly toolCalls: number;
+    // (undocumented)
+    readonly totalTokens?: number;
+}
+
+// @public (undocumented)
+export interface RunBudgetUpdatedEvent extends RunEventBase {
+    // (undocumented)
+    readonly budget: RunBudgetSnapshot;
+    // (undocumented)
+    readonly type: 'run.budget.updated';
+}
+
+// @public (undocumented)
+export interface RunCancelledEvent extends RunEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly result: AgentResult;
+    // (undocumented)
+    readonly type: 'run.cancelled';
+}
+
+// @public (undocumented)
+export interface RunCompletedEvent extends RunEventBase {
+    // (undocumented)
+    readonly result: AgentResult;
+    // (undocumented)
+    readonly type: 'run.completed';
+}
+
+// @public (undocumented)
+export type RunEvent = RunBudgetUpdatedEvent | RunCancelledEvent | RunCompletedEvent | RunFailedEvent | RunLimitExceededEvent | RunModelCompletedEvent | RunModelStartedEvent | RunPolicyDecidedEvent | RunStartedEvent | RunToolCompletedEvent | RunToolProposedEvent | RunToolStartedEvent | RunUsageUpdatedEvent;
+
+// @public (undocumented)
+export interface RunEventBase {
+    // (undocumented)
+    readonly eventId: string;
+    // (undocumented)
+    readonly occurredAt: string;
+    // (undocumented)
+    readonly runId: string;
+    // (undocumented)
+    readonly sequence: number;
+}
+
+// @public (undocumented)
+export interface RunFailedEvent extends RunEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly result: AgentResult;
+    // (undocumented)
+    readonly type: 'run.failed';
+}
+
+// @public (undocumented)
+export interface RunLimitExceededEvent extends RunEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly limit: keyof RunLimits;
+    // (undocumented)
+    readonly result: AgentResult;
+    // (undocumented)
+    readonly type: 'run.limit_exceeded';
+}
+
+// @public (undocumented)
+export interface RunLimits {
+    // (undocumented)
+    readonly maxCallsPerTool: number;
+    // (undocumented)
+    readonly maxConcurrentTools: number;
+    // (undocumented)
+    readonly maxDurationMs: number;
+    // (undocumented)
+    readonly maxInputTokens: number;
+    // (undocumented)
+    readonly maxModelSteps: number;
+    // (undocumented)
+    readonly maxOutputTokens: number;
+    // (undocumented)
+    readonly maxRepeatedToolFailures: number;
+    // (undocumented)
+    readonly maxToolCalls: number;
+    // (undocumented)
+    readonly maxTotalTokens: number;
+}
+
+// @public (undocumented)
+export interface RunModelCompletedEvent extends RunEventBase {
+    // (undocumented)
+    readonly response: ModelResponse;
+    // (undocumented)
+    readonly step: number;
+    // (undocumented)
+    readonly type: 'run.model.completed';
+}
+
+// @public (undocumented)
+export interface RunModelStartedEvent extends RunEventBase {
+    // (undocumented)
+    readonly request: ModelRequest;
+    // (undocumented)
+    readonly step: number;
+    // (undocumented)
+    readonly type: 'run.model.started';
+}
+
+// @public (undocumented)
+export interface RunPolicyDecidedEvent extends RunEventBase {
+    // (undocumented)
+    readonly call: ToolCall;
+    // (undocumented)
+    readonly decision: PolicyDecision;
+    // (undocumented)
+    readonly type: 'run.policy.decided';
+}
+
+// @public (undocumented)
+export interface RunStartedEvent extends RunEventBase {
+    // (undocumented)
+    readonly type: 'run.started';
+}
+
+// @public (undocumented)
+export interface RunToolCompletedEvent extends RunEventBase {
+    // (undocumented)
+    readonly call: ToolCall;
+    // (undocumented)
+    readonly result: ToolResultPart;
+    // (undocumented)
+    readonly type: 'run.tool.completed';
+}
+
+// @public (undocumented)
+export interface RunToolProposedEvent extends RunEventBase {
+    // (undocumented)
+    readonly call: ToolCall;
+    // (undocumented)
+    readonly type: 'run.tool.proposed';
+}
+
+// @public (undocumented)
+export interface RunToolStartedEvent extends RunEventBase {
+    // (undocumented)
+    readonly call: ToolCall;
+    // (undocumented)
+    readonly type: 'run.tool.started';
+}
+
+// @public (undocumented)
+export interface RunUsageUpdatedEvent extends RunEventBase {
+    // (undocumented)
+    readonly type: 'run.usage.updated';
+    // (undocumented)
+    readonly usage: Usage;
+}
+
+// @public
+export class SafeDefaultToolPolicy implements ToolPolicy {
+    // (undocumented)
+    evaluate(context: PolicyEvaluationContext): PolicyDecision;
+}
+
+// @public (undocumented)
 export interface SamplingOptions {
     // (undocumented)
     readonly seed?: number;
@@ -398,6 +695,9 @@ export interface SerializedAiError {
 
 // @public (undocumented)
 export type TerminalModelEvent = ModelResponseCompletedEvent | ModelResponseFailedEvent;
+
+// @public (undocumented)
+export type TerminalRunEvent = RunCancelledEvent | RunCompletedEvent | RunFailedEvent | RunLimitExceededEvent;
 
 // @public (undocumented)
 export interface TextPart {
@@ -469,6 +769,52 @@ export interface ToolDefinition {
     readonly name: string;
     // (undocumented)
     readonly outputSchema?: JsonSchema;
+}
+
+// @public (undocumented)
+export interface ToolExecutionContext {
+    // (undocumented)
+    readonly callId: string;
+    // (undocumented)
+    readonly deadline: string;
+    // (undocumented)
+    readonly runId: string;
+    // (undocumented)
+    readonly signal: AbortSignal;
+}
+
+// @public (undocumented)
+export interface ToolExecutionOutput {
+    // (undocumented)
+    readonly content?: readonly ToolResultContentPart[];
+    // (undocumented)
+    readonly structuredContent?: JsonValue;
+}
+
+// @public (undocumented)
+export type ToolHandler = (arguments_: JsonObject, context: ToolExecutionContext) => Promise<ToolExecutionOutput> | ToolExecutionOutput;
+
+// @public (undocumented)
+export interface ToolPolicy {
+    // (undocumented)
+    evaluate(context: PolicyEvaluationContext): Promise<PolicyDecision> | PolicyDecision;
+}
+
+// @public
+export class ToolRegistry {
+    constructor(tools?: readonly LocalTool[]);
+    // (undocumented)
+    definition(name: string): ToolDefinition | undefined;
+    // (undocumented)
+    get definitions(): readonly ToolDefinition[];
+    // (undocumented)
+    execute(call: ToolCall, context: ToolExecutionContext): Promise<ToolExecutionOutput>;
+    // (undocumented)
+    register(tool: LocalTool): void;
+    // (undocumented)
+    validate(call: ToolCall): void;
+    // (undocumented)
+    validateOutput(name: string, output: ToolExecutionOutput): void;
 }
 
 // @public (undocumented)
