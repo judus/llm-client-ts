@@ -13,11 +13,11 @@ OpenAI file transcription and speech generation implement the provider-neutral c
 
 OpenAI SDK request objects, event unions, upload values, response wrappers, and web `Response` objects stay inside `OpenAISdkAudioTransport`. Public injection ports use only suite types, plain objects, `Uint8Array`, `AbortSignal`, and async iterables. Both adapters reuse the package's normalized OpenAI error mapping.
 
-This is composed, bounded audio. Live microphone input, bidirectional audio, voice activity detection, and interruption belong to the separate realtime session milestone.
+This is request-oriented recorded audio. Live microphone input, bidirectional audio, voice activity detection, and interruption are outside the focused client scope.
 
 ## Consequences
 
-- Applications can combine OpenAI transcription or synthesis with any compatible agent/model provider.
+- Applications can combine OpenAI transcription or synthesis with any compatible configured model provider.
 - Invalid size, MIME type, language, speed, output format, and malformed event sequences fail locally and consistently.
 - Partial file-transcription deltas reach the common voice event stream while only the final text becomes canonical conversation content.
 - No OpenAI SDK type crosses the package's public audio contracts.

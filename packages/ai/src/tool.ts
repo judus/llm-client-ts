@@ -5,7 +5,6 @@ export interface ToolAnnotations {
   readonly idempotent?: boolean;
   readonly openWorld?: boolean;
   readonly readOnly?: boolean;
-  readonly requiresApproval?: boolean;
 }
 
 export interface ToolDefinition {

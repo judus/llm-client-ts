@@ -1,23 +1,22 @@
-# ADR 0004: Conversation consistency and context selection
+# ADR 0004: Conversation consistency and rolling summaries
 
 - Status: accepted
-- Date: 2026-08-07
+- Date: 2026-08-08
 
 ## Decision
 
-Conversation persistence is an application-owned port. Every append supplies the expected conversation revision, and successful batches increment that revision exactly once. The reference in-memory store performs the revision check, message validation, append, and revision update atomically.
+Conversation persistence is an application-owned port. Every append supplies the expected revision, and a successful batch increments that revision exactly once. Snapshots return conversation metadata, revision, and messages from one read. Store boundaries use defensive copies.
 
-Snapshots return conversation metadata, revision, and messages from one read. Store boundaries use defensive copies so callers cannot mutate persisted state through shared object references.
+The fluent client reads one snapshot before a turn and appends the completed batch once. It does not automatically replay model requests or MCP tool calls after a persistence conflict.
 
-Context selection is a separate strategy from persistence. The initial selector pins system and developer instructions, selects recent history within explicit reserves, and treats each assistant tool-call message plus its complete result messages as one indivisible group. Incomplete groups and orphan results are omitted with explicit reasons. Token counting is injectable; the character estimator is only a deterministic fallback.
+Context selection is separate from persistence. System and developer instructions are pinned. An assistant tool-call message and its complete tool-result messages form an indivisible group. Token estimation is injectable; the character estimator is the deterministic fallback.
 
-Summaries are explicit records with source message boundaries, prompt version, model, creation time, and source-retention status. Recursive summarization must retain that lineage.
-
-The agent runtime may receive a conversation store and history selector. It reads one snapshot before model work and performs one append after the run reaches a terminal state. It never retries that append or replays the run automatically. Persistence conflicts after any tool executor was invoked are marked non-retryable, since annotations cannot prove that an external side effect did not occur.
+When a maximum context is configured, the client creates rolling summaries before ordinary generation. Raw source messages remain stored. A summary is a derived developer message marked with its source boundary. A later summary merges the previous checkpoint with newly omitted messages. Summary provider usage is added to the turn usage.
 
 ## Consequences
 
-- Concurrent writers receive a typed revision conflict instead of silently interleaving state.
-- Provider-specific tokenizers can replace the fallback without changing storage.
-- Context construction can be traced because omissions and reserves are returned as data.
-- Durable source messages and summaries remain distinct records.
+- Concurrent writers receive a typed conflict instead of silently interleaving turns.
+- Storage technology is irrelevant to the client.
+- Tool calls are never separated from their results during trimming or compression.
+- Raw history remains auditable even when model context uses a summary.
+- Provider-specific token estimators can replace the fallback without changing storage.

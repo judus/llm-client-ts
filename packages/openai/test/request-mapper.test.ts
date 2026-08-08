@@ -306,25 +306,12 @@ describe('OpenAI request mapping', () => {
     ]);
   });
 
-  it('rejects unresolved artifacts, foreign files, unsafe URLs, and unsupported audio', () => {
+  it('rejects foreign files, unsafe URLs, and unsupported audio', () => {
     const binaryRequest = (content: ModelRequest['messages'][number]['content']): ModelRequest => ({
       messages: [{ ...request.messages[0]!, content }],
       model: request.model,
     });
 
-    expect(() =>
-      mapOpenAIRequest(
-        binaryRequest([
-          {
-            filename: 'report.pdf',
-            mimeType: 'application/pdf',
-            source: { artifactId: 'artifact-1', type: 'artifact' },
-            type: 'document',
-          },
-        ]),
-        false,
-      ),
-    ).toThrow(expect.objectContaining({ code: 'openai_artifact_not_materialized' }));
     expect(() =>
       mapOpenAIRequest(
         binaryRequest([
@@ -373,18 +360,6 @@ describe('OpenAI request mapping', () => {
         false,
       ),
     ).toThrow(expect.objectContaining({ code: 'invalid_openai_provider_file_id' }));
-    expect(() =>
-      mapOpenAIRequest(
-        binaryRequest([
-          {
-            mimeType: 'image/png',
-            source: { artifactId: 'artifact-image', type: 'artifact' },
-            type: 'image',
-          },
-        ]),
-        false,
-      ),
-    ).toThrow(expect.objectContaining({ code: 'openai_artifact_not_materialized' }));
     expect(() =>
       mapOpenAIRequest(
         binaryRequest([

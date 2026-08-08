@@ -18,7 +18,7 @@ export interface ScriptedProviderOptions {
   readonly id?: string;
 }
 
-/** Deterministic provider used for client, runtime, and conformance tests. */
+/** Deterministic provider used for client and adapter conformance tests. */
 export class ScriptedProvider implements ModelProvider {
   public readonly id: string;
   readonly #capabilities: ModelCapabilities;

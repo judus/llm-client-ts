@@ -1,23 +1,32 @@
 # Maduser AI TypeScript Suite
 
-A provider-neutral AI client and bounded agent runtime for serious application development.
+A focused, provider-neutral AI client for Node.js applications.
 
-The suite is under active construction. Its packages are intentionally independent at the npm boundary while sharing one repository, one contract test system, and one quality standard.
+```ts
+import { createAiClient } from '@maduser/ai-ts';
+import { openAI } from '@maduser/ai-ts-openai';
+
+const ai = createAiClient({
+  provider: openAI({ apiKey: process.env.OPENAI_API_KEY, model: 'gpt-5.4' }),
+  mcp: [{ name: 'system', url: 'http://127.0.0.1:3001/mcp' }],
+});
+
+const result = await ai.user('Find information about Sol.').run();
+console.log(result.text, result.usage);
+```
 
 ## Packages
 
-- `@maduser/ai-ts` — normalized core contracts and runtime.
-- `@maduser/ai-ts-openai` — OpenAI adapter.
-- `@maduser/ai-ts-bedrock` — Amazon Bedrock adapter.
-- `@maduser/ai-ts-mcp` — Model Context Protocol integration.
-- `@maduser/ai-ts-testing` — conformance fixtures and test utilities.
+- `@maduser/ai-ts` — fluent client, normalized provider contracts, MCP execution, history, documents, and voice composition.
+- `@maduser/ai-ts-openai` — OpenAI Responses, transcription, and speech adapters.
+- `@maduser/ai-ts-testing` — deterministic provider fixtures for consumer and adapter tests.
+
+The suite intentionally contains no approval system, permission policy, autonomous-agent framework, or workflow engine. The host application owns business authorization and spending decisions; the client reports provider usage.
 
 ## Requirements
 
 - Node.js 24 or newer.
 - pnpm 11.20.0 through Corepack.
-
-## Development
 
 ```bash
 corepack enable
@@ -25,4 +34,4 @@ pnpm install
 pnpm check
 ```
 
-Architecture and implementation decisions live in [`docs/decisions`](docs/decisions). The full project plan is maintained in [`.context/project-plan.md`](.context/project-plan.md).
+The implementation plan is maintained in [`.context/project-plan.md`](.context/project-plan.md).

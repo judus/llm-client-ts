@@ -132,7 +132,7 @@ describe('OpenAITranscriptionProvider', () => {
 
   it.each([
     {
-      audio: { ...audio, source: { artifactId: 'audio-1', type: 'artifact' as const } },
+      audio: { ...audio, source: { type: 'url' as const, url: 'https://example.test/audio.wav' } },
       code: 'openai_transcription_audio_not_materialized',
       options: {},
     },

@@ -2,7 +2,7 @@
   "name": "@maduser/ai-ts",
   "version": "0.0.0",
   "private": true,
-  "description": "Provider-neutral AI client contracts and bounded runtime.",
+  "description": "Provider-neutral fluent AI client with MCP, history, documents, and voice.",
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -31,6 +31,7 @@
     "provenance": true
   },
   "dependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
     "ajv": "8.20.0"
   }
 }

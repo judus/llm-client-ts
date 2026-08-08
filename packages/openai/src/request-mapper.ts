@@ -153,8 +153,6 @@ function mapStandalonePart(part: ContentPart, state: MappingState): ResponseInpu
 function mapDocument(part: DocumentPart, state: MappingState): ResponseInputContent {
   validateMimeType(part.mimeType, 'document');
   switch (part.source.type) {
-    case 'artifact':
-      throw unresolvedArtifact(part.source.artifactId);
     case 'provider_file':
       return {
         file_id: validateProviderFile(part.source.provider, part.source.fileId),
@@ -208,8 +206,6 @@ function mapImage(part: ImagePart, state: MappingState): ResponseInputContent {
   }
   const detail = part.detail ?? 'auto';
   switch (part.source.type) {
-    case 'artifact':
-      throw unresolvedArtifact(part.source.artifactId);
     case 'provider_file':
       return {
         detail,
@@ -482,15 +478,4 @@ function dataUrl(mimeType: string, bytes: Uint8Array): string {
     bytes.byteOffset,
     bytes.byteLength,
   ).toString('base64')}`;
-}
-
-function unresolvedArtifact(artifactId: string): AiError {
-  return new AiError(
-    'invalid_request',
-    'OpenAI request mapping requires artifact sources to be materialized first.',
-    {
-      code: 'openai_artifact_not_materialized',
-      details: { artifactId },
-    },
-  );
 }

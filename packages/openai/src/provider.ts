@@ -4,6 +4,7 @@ import {
   AiError,
   serializeAiError,
   type CallOptions,
+  type ConfiguredProvider,
   type ModelCapabilities,
   type ModelProvider,
   type ModelRequest,
@@ -12,6 +13,12 @@ import {
 } from '@maduser/ai-ts';
 
 import { defaultOpenAIModelCapabilities, type OpenAIProviderOptions } from './configuration.js';
+import {
+  OpenAISpeechSynthesisProvider,
+  OpenAITranscriptionProvider,
+  type OpenAISpeechSynthesisProviderOptions,
+  type OpenAITranscriptionProviderOptions,
+} from './audio-provider.js';
 import { mapOpenAIError } from './error-mapper.js';
 import { mapOpenAIRequest, mapOpenAIStreamRequest } from './request-mapper.js';
 import { mapOpenAIResponse, mapOpenAIToolCall } from './response-mapper.js';
@@ -29,6 +36,15 @@ export interface OpenAIProviderDependencies {
   readonly createId: () => string;
   readonly now: () => Date;
   readonly transport: OpenAIResponsesTransport;
+}
+
+export interface OpenAIClientOptions extends OpenAIProviderOptions {
+  /** Model used by the fluent client. */
+  readonly model: string;
+  /** Speech output configuration. Set to false to disable speech synthesis. */
+  readonly speechSynthesis?: false | OpenAISpeechSynthesisProviderOptions;
+  /** Recorded-audio input configuration. Set to false to disable transcription. */
+  readonly transcription?: false | OpenAITranscriptionProviderOptions;
 }
 
 export class OpenAIProvider implements ModelProvider {
@@ -150,9 +166,46 @@ export class OpenAIProvider implements ModelProvider {
   }
 }
 
+class ConfiguredOpenAIProvider extends OpenAIProvider implements ConfiguredProvider {
+  public readonly model: string;
+  public readonly speechSynthesis?: OpenAISpeechSynthesisProvider;
+  public readonly transcription?: OpenAITranscriptionProvider;
+
+  public constructor(options: OpenAIClientOptions) {
+    super(options);
+    this.model = requireModel(options.model);
+    const connection = {
+      ...(options.apiKey === undefined ? {} : { apiKey: options.apiKey }),
+      ...(options.baseUrl === undefined ? {} : { baseUrl: options.baseUrl }),
+      ...(options.maxRetries === undefined ? {} : { maxRetries: options.maxRetries }),
+      ...(options.organization === undefined ? {} : { organization: options.organization }),
+      ...(options.project === undefined ? {} : { project: options.project }),
+      ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+    };
+    if (options.transcription !== false) {
+      this.transcription = new OpenAITranscriptionProvider({
+        ...connection,
+        ...options.transcription,
+      });
+    }
+    if (options.speechSynthesis !== false) {
+      this.speechSynthesis = new OpenAISpeechSynthesisProvider({
+        ...connection,
+        ...options.speechSynthesis,
+      });
+    }
+  }
+}
+
 /** Creates the OpenAI Responses API adapter without exposing OpenAI SDK objects. */
 export function createOpenAIProvider(options: OpenAIProviderOptions = {}): ModelProvider {
   return new OpenAIProvider(options);
+}
+
+/** Creates a model-bound OpenAI provider for createAiClient(). */
+export function openAI(options: OpenAIClientOptions): ConfiguredProvider {
+  requireModel(options.model);
+  return new ConfiguredOpenAIProvider(options);
 }
 
 function defaultDependencies(options: OpenAIProviderOptions): OpenAIProviderDependencies {
@@ -169,4 +222,13 @@ function transportOptions(options: CallOptions | undefined): OpenAITransportCall
     ...(options?.signal === undefined ? {} : { signal: options.signal }),
     ...(options?.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
   };
+}
+
+function requireModel(value: string): string {
+  if (value.trim().length === 0) {
+    throw new AiError('invalid_request', 'OpenAI model must not be empty.', {
+      code: 'openai_model_empty',
+    });
+  }
+  return value;
 }

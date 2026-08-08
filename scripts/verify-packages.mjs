@@ -3,9 +3,7 @@ import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const packageDirectories = ['ai', 'openai', 'bedrock', 'mcp', 'testing'].map(
-  (name) => `packages/${name}`,
-);
+const packageDirectories = ['ai', 'openai', 'testing'].map((name) => `packages/${name}`);
 
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'ai-ts-package-check-'));
 

@@ -1,8 +1,6 @@
 import type { JsonObject } from './json.js';
 
 export type AiErrorCategory =
-  | 'approval_expired'
-  | 'approval_required'
   | 'authentication'
   | 'authorization'
   | 'budget_exceeded'
@@ -11,7 +9,6 @@ export type AiErrorCategory =
   | 'invalid_request'
   | 'malformed_response'
   | 'persistence_conflict'
-  | 'policy_denial'
   | 'provider_unavailable'
   | 'rate_limit'
   | 'structured_output_validation'

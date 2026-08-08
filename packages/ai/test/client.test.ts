@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  AiClient,
+  ModelClient,
   AiError,
   type ModelCapabilities,
   type ModelProvider,
@@ -42,16 +42,16 @@ class StubProvider implements ModelProvider {
   }
 }
 
-describe('AiClient', () => {
+describe('ModelClient', () => {
   it('returns provider capabilities', async () => {
-    const client = new AiClient(new StubProvider());
+    const client = new ModelClient(new StubProvider());
 
     await expect(client.capabilities(request)).resolves.toBe(capabilities);
   });
 
   it('validates and delegates a complete response', async () => {
     const provider = new StubProvider();
-    const client = new AiClient(provider);
+    const client = new ModelClient(provider);
 
     await expect(client.generate(request)).resolves.toBe(response);
     expect(provider.generateMock).toHaveBeenCalledExactlyOnceWith(request);
@@ -59,7 +59,7 @@ describe('AiClient', () => {
 
   it('rejects a provider mismatch before generation', async () => {
     const provider = new StubProvider();
-    const client = new AiClient(provider);
+    const client = new ModelClient(provider);
     const mismatched: ModelRequest = {
       ...request,
       model: { model: 'test-model', provider: 'different' },
@@ -75,7 +75,7 @@ describe('AiClient', () => {
   it('normalizes an already-aborted request', async () => {
     const controller = new AbortController();
     controller.abort('stop');
-    const client = new AiClient(new StubProvider());
+    const client = new ModelClient(new StubProvider());
 
     await expect(client.generate(request, { signal: controller.signal })).rejects.toMatchObject({
       category: 'cancelled',
@@ -89,7 +89,7 @@ describe('AiClient', () => {
       event(1, { delta: 'Hello', outputIndex: 0, type: 'model.text.delta' }),
       event(2, { response, type: 'model.response.completed' }),
     ]);
-    const client = new AiClient(provider);
+    const client = new ModelClient(provider);
 
     const events: ModelStreamEvent[] = [];
     for await (const value of client.stream(request)) {
@@ -104,7 +104,7 @@ describe('AiClient', () => {
       event(0, { type: 'model.request.started' }),
       event(2, { response, type: 'model.response.completed' }),
     ]);
-    const client = new AiClient(provider);
+    const client = new ModelClient(provider);
 
     await expect(collect(client.stream(request))).rejects.toMatchObject({
       category: 'malformed_response',
@@ -114,13 +114,13 @@ describe('AiClient', () => {
 
   it('rejects a stream without a terminal event', async () => {
     const provider = new StubProvider([event(0, { type: 'model.request.started' })]);
-    const client = new AiClient(provider);
+    const client = new ModelClient(provider);
 
     await expect(collect(client.stream(request))).rejects.toBeInstanceOf(AiError);
   });
 
   it('rejects a stream that does not start with a request event', async () => {
-    const client = new AiClient(
+    const client = new ModelClient(
       new StubProvider([event(0, { delta: 'Hello', outputIndex: 0, type: 'model.text.delta' })]),
     );
 
@@ -130,7 +130,7 @@ describe('AiClient', () => {
   });
 
   it('rejects duplicate starts and events after a terminal event', async () => {
-    const duplicateStart = new AiClient(
+    const duplicateStart = new ModelClient(
       new StubProvider([
         event(0, { type: 'model.request.started' }),
         event(1, { type: 'model.request.started' }),
@@ -140,7 +140,7 @@ describe('AiClient', () => {
       code: 'invalid_event_sequence',
     });
 
-    const eventAfterTerminal = new AiClient(
+    const eventAfterTerminal = new ModelClient(
       new StubProvider([
         event(0, { type: 'model.request.started' }),
         event(1, { response, type: 'model.response.completed' }),

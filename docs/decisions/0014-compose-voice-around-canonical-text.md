@@ -1,27 +1,24 @@
-# ADR 0014: Compose voice around canonical text
+# ADR 0014: Compose recorded voice around canonical text
 
 - Status: accepted
 - Date: 2026-08-08
 
 ## Decision
 
-Composed voice is a provider-neutral orchestration layer around the existing bounded agent runtime. It does not introduce a second conversation engine.
+Recorded voice is a modality of the fluent client, not a second conversation engine.
 
-`ComposedVoiceRuntime` accepts independent `TranscriptionProvider` and optional `SpeechSynthesisProvider` implementations. A completed transcription becomes an ordinary user text part with `source: "transcribed"` and is passed through the same agent, tool, MCP, policy, budget, context-selection, and conversation-persistence path as typed text. The persisted assistant message remains the canonical response; generated audio is a representation of its displayable text.
+An optional `TranscriptionProvider` converts recorded audio into one final normalized transcript. That transcript becomes an ordinary user text part with `source: "transcribed"` and follows the same history, context, MCP discovery, tool execution, and persistence path as typed input.
 
-Transcription is an event stream so providers can expose ephemeral text deltas before one final normalized transcription. The composed runtime wraps the normal agent event stream rather than translating or hiding it. Each stage has a normalized terminal failure, and a synthesis failure retains the successfully completed agent result and assistant transcript.
+An optional `SpeechSynthesisProvider` converts the final assistant text into audio. The text message remains canonical history; generated audio is its immediate playable representation and is returned only in the turn result.
 
-Input and output audio retention are independent and disabled by default. Retention requires an injected `ArtifactStore`; only already materialized bytes or artifact references can be retained. Default events carry transcript text and audio metadata, never raw audio bytes. The terminal result may contain synthesized audio so the immediate caller can play it without forcing durable retention.
+Transcription, model continuations, history summarization, and speech usage are aggregated. Partial transcription deltas may exist inside a provider adapter, but only the final transcript is persisted.
 
-Stage and total latency use a monotonic clock independent from event wall-clock timestamps. Transcription and synthesis completion events expose their own latency; terminal results retain transcription, agent, synthesis, and enabled persistence-stage durations. Output persistence is a separate stage, so a failed artifact write cannot misreport a successful provider synthesis as a synthesis failure.
-
-Realtime, full-duplex voice remains a separate session contract. It has different lifecycle, interruption, transport, and transcript-reconciliation requirements and will not be forced into the turn-oriented composed API.
+Live microphone capture, playback, full-duplex sessions, VAD, and interruption are excluded from the focused client.
 
 ## Consequences
 
-- Spoken and typed turns can alternate in one ordered conversation.
-- Speech-to-text, model, and text-to-speech providers can be mixed independently.
-- Voice does not bypass the bounded runtime or create a second tool execution path.
-- Partial transcript deltas are observable but only the final transcript becomes durable conversation content.
-- Audio persistence is explicit, bounded by the artifact store, and absent from default traces.
-- Provider-specific transcription and synthesis adapters can be implemented without changing core conversation semantics.
+- Spoken and typed turns alternate in one ordered conversation.
+- Voice uses the same MCP tool path as text.
+- Audio output is optional and does not create a duplicate assistant message.
+- UI device concerns stay outside the backend client package.
+- Realtime concerns cannot distort the simpler recorded-turn API.

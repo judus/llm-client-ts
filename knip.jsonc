@@ -24,13 +24,5 @@
       "entry": ["src/index.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"],
     },
-    "packages/bedrock": {
-      "entry": ["src/index.ts"],
-      "project": ["src/**/*.ts"],
-    },
-    "packages/mcp": {
-      "entry": ["src/index.ts"],
-      "project": ["src/**/*.ts"],
-    },
   },
 }

@@ -7,8 +7,6 @@ allowBuilds:
   libxmljs2: true
 engineStrict: true
 minimumReleaseAgeExclude:
-  - '@aws-sdk/client-bedrock-runtime@3.1105.0'
-  - '@aws-sdk/token-providers@3.1105.0'
   - tsx@4.23.11
 saveExact: true
 sharedWorkspaceLockfile: true

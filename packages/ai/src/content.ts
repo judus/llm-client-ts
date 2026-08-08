@@ -3,7 +3,6 @@ import type { JsonObject, JsonValue } from './json.js';
 /** A source for binary content. Exactly one source is selected by its discriminator. */
 export type BinarySource =
   | { readonly bytes: Uint8Array; readonly type: 'bytes' }
-  | { readonly artifactId: string; readonly type: 'artifact' }
   | { readonly type: 'url'; readonly url: string }
   | {
       readonly fileId: string;
@@ -66,7 +65,7 @@ export interface ToolResultPart {
   readonly callId: string;
   readonly content: readonly ToolResultContentPart[];
   readonly error?: ToolResultError;
-  readonly status: 'cancelled' | 'denied' | 'error' | 'success';
+  readonly status: 'cancelled' | 'error' | 'success';
   readonly structuredContent?: JsonValue;
   readonly type: 'tool_result';
 }

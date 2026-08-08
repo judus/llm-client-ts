@@ -1,5 +1,5 @@
 import {
-  AiClient,
+  ModelClient,
   AiError,
   type ConversationMessage,
   type ModelRequest,
@@ -41,7 +41,7 @@ const response: ModelResponse = {
 describe('ScriptedProvider', () => {
   it('drives a deterministic complete response and records requests', async () => {
     const provider = new ScriptedProvider([{ response, type: 'generate' }]);
-    const client = new AiClient(provider);
+    const client = new ModelClient(provider);
 
     await expect(client.generate(request)).resolves.toBe(response);
     expect(provider.requests).toEqual([request]);
@@ -50,7 +50,7 @@ describe('ScriptedProvider', () => {
 
   it('fails when the script is exhausted', async () => {
     const provider = new ScriptedProvider([]);
-    const client = new AiClient(provider);
+    const client = new ModelClient(provider);
 
     await expect(client.generate(request)).rejects.toMatchObject({ code: 'script_exhausted' });
   });
@@ -61,14 +61,14 @@ describe('ScriptedProvider', () => {
       retryable: true,
     });
     const provider = new ScriptedProvider([{ error, type: 'throw' }]);
-    const client = new AiClient(provider);
+    const client = new ModelClient(provider);
 
     await expect(client.generate(request)).rejects.toBe(error);
   });
 
   it('rejects an unexpected operation and can script stream failures', async () => {
     const wrongOperation = new ScriptedProvider([{ events: [], type: 'stream' }]);
-    await expect(new AiClient(wrongOperation).generate(request)).rejects.toMatchObject({
+    await expect(new ModelClient(wrongOperation).generate(request)).rejects.toMatchObject({
       code: 'unexpected_script_step',
     });
 
@@ -76,7 +76,7 @@ describe('ScriptedProvider', () => {
       code: 'unavailable',
     });
     const failedStream = new ScriptedProvider([{ error, type: 'throw' }]);
-    await expect(collect(new AiClient(failedStream).stream(request))).rejects.toBe(error);
+    await expect(collect(new ModelClient(failedStream).stream(request))).rejects.toBe(error);
   });
 
   it('rejects cancellation between scripted stream events', async () => {

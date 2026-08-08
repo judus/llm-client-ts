@@ -5,8 +5,6 @@
     "noEmit": true,
     "paths": {
       "@maduser/ai-ts": ["./packages/ai/src/index.ts"],
-      "@maduser/ai-ts-bedrock": ["./packages/bedrock/src/index.ts"],
-      "@maduser/ai-ts-mcp": ["./packages/mcp/src/index.ts"],
       "@maduser/ai-ts-openai": ["./packages/openai/src/index.ts"],
       "@maduser/ai-ts-testing": ["./packages/testing/src/index.ts"]
     },

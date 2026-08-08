@@ -4,9 +4,6 @@ const config: ViteUserConfig = {
   resolve: {
     alias: {
       '@maduser/ai-ts': new URL('./packages/ai/src/index.ts', import.meta.url).pathname,
-      '@maduser/ai-ts-bedrock': new URL('./packages/bedrock/src/index.ts', import.meta.url)
-        .pathname,
-      '@maduser/ai-ts-mcp': new URL('./packages/mcp/src/index.ts', import.meta.url).pathname,
       '@maduser/ai-ts-openai': new URL('./packages/openai/src/index.ts', import.meta.url).pathname,
       '@maduser/ai-ts-testing': new URL('./packages/testing/src/index.ts', import.meta.url)
         .pathname,

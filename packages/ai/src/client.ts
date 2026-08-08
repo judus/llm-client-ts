@@ -6,7 +6,7 @@ import type { ModelProvider } from './provider.js';
 import { validateModelRequest } from './validate-request.js';
 
 /** Provider-neutral low-level client. It never executes requested tools automatically. */
-export class AiClient {
+export class ModelClient {
   readonly #provider: ModelProvider;
 
   public constructor(provider: ModelProvider) {

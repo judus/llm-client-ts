@@ -4,121 +4,28 @@
 
 ```ts
 
-// @public (undocumented)
-export interface AcquireProviderFileLease {
-    // (undocumented)
-    readonly artifactId: string;
-    // (undocumented)
-    readonly deleteOnRelease?: boolean;
-    // (undocumented)
-    readonly leaseDurationMs?: number;
-    // (undocumented)
-    readonly purpose: string;
-    // (undocumented)
-    readonly scopeId: string;
-}
-
 // @public
 export function addUsage(left: Usage, right: Usage): Usage;
 
-// @public (undocumented)
-export interface AgentDefinition {
+// @public
+export class AiChat {
+    // Warning: (ae-forgotten-export) The symbol "ClientDefaults" needs to be exported by the entry point index.d.ts
+    constructor(defaults: ClientDefaults, chatId: string);
     // (undocumented)
-    readonly id: string;
+    audio(input: AudioInput): AiRequest;
     // (undocumented)
-    readonly instructions?: string;
-    // (undocumented)
-    readonly model: ModelSelector;
-    // (undocumented)
-    readonly parallelToolCalls?: boolean;
-    // (undocumented)
-    readonly tools?: readonly string[];
-    // (undocumented)
-    readonly version?: string;
-}
-
-// @public (undocumented)
-export interface AgentResult {
-    // (undocumented)
-    readonly conversationId: string;
-    // (undocumented)
-    readonly conversationRevision?: number;
-    // (undocumented)
-    readonly error?: SerializedAiError;
-    // (undocumented)
-    readonly messages: readonly ConversationMessage[];
-    // (undocumented)
-    readonly modelSteps: number;
-    // (undocumented)
-    readonly output?: ConversationMessage;
-    // (undocumented)
-    readonly runId: string;
-    // (undocumented)
-    readonly status: AgentRunStatus;
-    // (undocumented)
-    readonly toolCalls: number;
-    // (undocumented)
-    readonly usage: Usage;
-}
-
-// @public (undocumented)
-export interface AgentRunOptions {
-    // (undocumented)
-    readonly signal?: AbortSignal;
-}
-
-// @public (undocumented)
-export interface AgentRunRequest {
-    // (undocumented)
-    readonly agent: AgentDefinition;
-    // (undocumented)
-    readonly context?: JsonObject;
-    // (undocumented)
-    readonly conversationId?: string;
-    // (undocumented)
-    readonly input: readonly ContentPart[];
-    // (undocumented)
-    readonly limits?: Partial<RunLimits>;
-}
-
-// @public (undocumented)
-export type AgentRunStatus = 'cancelled' | 'completed' | 'failed' | 'limit_exceeded';
-
-// @public (undocumented)
-export interface AgentRunStream {
-    // (undocumented)
-    stream(request: AgentRunRequest, options?: AgentRunOptions): AsyncIterable<RunEvent>;
-}
-
-// @public (undocumented)
-export interface AgentRuntimeOptions {
-    // (undocumented)
-    readonly client: AiClient;
-    // (undocumented)
-    readonly clock?: () => Date;
-    // (undocumented)
-    readonly contextSelection?: ContextSelectionOptions;
-    // (undocumented)
-    readonly conversations?: ConversationStore;
-    // (undocumented)
-    readonly historySelector?: PairSafeHistorySelector;
-    // (undocumented)
-    readonly idGenerator?: () => string;
-    // (undocumented)
-    readonly policy?: ToolPolicy;
-    // (undocumented)
-    readonly tools?: ToolRegistry;
+    user(text: string): AiRequest;
 }
 
 // @public
 export class AiClient {
-    constructor(provider: ModelProvider);
+    constructor(options: CreateAiClientOptions);
     // (undocumented)
-    capabilities(request: ModelRequest): Promise<ModelCapabilities>;
+    audio(input: AudioInput): AiRequest;
     // (undocumented)
-    generate(request: ModelRequest, options?: CallOptions): Promise<ModelResponse>;
+    chat(id: string): AiChat;
     // (undocumented)
-    stream(request: ModelRequest, options?: CallOptions): AsyncGenerator<ModelStreamEvent, void, void>;
+    user(text: string): AiRequest;
 }
 
 // @public
@@ -135,7 +42,7 @@ export class AiError extends Error {
 }
 
 // @public (undocumented)
-export type AiErrorCategory = 'approval_expired' | 'approval_required' | 'authentication' | 'authorization' | 'budget_exceeded' | 'cancelled' | 'content_policy' | 'invalid_request' | 'malformed_response' | 'persistence_conflict' | 'policy_denial' | 'provider_unavailable' | 'rate_limit' | 'structured_output_validation' | 'timeout' | 'tool_execution' | 'tool_validation' | 'transport' | 'unsupported_capability';
+export type AiErrorCategory = 'authentication' | 'authorization' | 'budget_exceeded' | 'cancelled' | 'content_policy' | 'invalid_request' | 'malformed_response' | 'persistence_conflict' | 'provider_unavailable' | 'rate_limit' | 'structured_output_validation' | 'timeout' | 'tool_execution' | 'tool_validation' | 'transport' | 'unsupported_capability';
 
 // @public (undocumented)
 export interface AiErrorOptions {
@@ -150,148 +57,84 @@ export interface AiErrorOptions {
 }
 
 // @public (undocumented)
+export interface AiHistoryCompressionOptions {
+    readonly keepRecentTokens?: number;
+    readonly triggerTokens?: number;
+}
+
+// @public (undocumented)
+export interface AiHistoryOptions {
+    readonly compression?: false | AiHistoryCompressionOptions;
+    readonly maxContextTokens?: number;
+    // (undocumented)
+    readonly repository: ConversationStore;
+    // (undocumented)
+    readonly reserveOutputTokens?: number;
+    // (undocumented)
+    readonly reserveToolResultTokens?: number;
+}
+
+// @public
+export class AiRequest {
+    // Warning: (ae-forgotten-export) The symbol "RequestState" needs to be exported by the entry point index.d.ts
+    constructor(defaults: ClientDefaults, state: RequestState);
+    // (undocumented)
+    addMcp(servers: readonly McpServer[]): this;
+    // (undocumented)
+    document(input: DocumentInput): this;
+    // (undocumented)
+    mcp(servers: readonly McpServer[]): this;
+    // (undocumented)
+    run(options?: AiRunOptions): Promise<AiResult>;
+    // (undocumented)
+    speak(options?: SpeechSynthesisOptions): this;
+    // (undocumented)
+    tools(names: readonly string[]): this;
+}
+
+// @public (undocumented)
+export interface AiResult {
+    // (undocumented)
+    readonly audio?: SpeechSynthesis_2;
+    // (undocumented)
+    readonly chatId: string;
+    // (undocumented)
+    readonly finishReason: FinishReason;
+    // (undocumented)
+    readonly message: ConversationMessage;
+    // (undocumented)
+    readonly text: string;
+    // (undocumented)
+    readonly transcript?: Transcription;
+    // (undocumented)
+    readonly usage: Usage;
+}
+
+// @public (undocumented)
+export type AiRunOptions = CallOptions;
+
+// @public (undocumented)
 export interface AppendMessagesOptions {
     // (undocumented)
     readonly expectedRevision: number;
 }
 
-// @public
-export interface ApprovalAction {
-    // (undocumented)
-    readonly arguments: JsonObject;
-    // (undocumented)
-    readonly context?: JsonObject;
-    // (undocumented)
-    readonly kind: ApprovalActionKind;
-    // (undocumented)
-    readonly target: string;
-}
-
 // @public (undocumented)
-export type ApprovalActionKind = 'custom' | 'external_write' | 'provider_file_upload' | 'sensitive_document_access' | 'tool_call';
-
-// @public
-export class ApprovalCoordinator {
-    constructor(options?: ApprovalCoordinatorOptions);
-    // (undocumented)
-    decide(command: DecideApproval): Promise<ApprovalRequest>;
-    // (undocumented)
-    request(input: ApprovalRequestInput): Promise<ApprovalRequest>;
-    // (undocumented)
-    verify(requestId: string, action: ApprovalAction): Promise<ApprovalRequest>;
-}
-
-// @public (undocumented)
-export interface ApprovalCoordinatorOptions {
-    // (undocumented)
-    readonly clock?: () => Date;
-    // (undocumented)
-    readonly idGenerator?: () => string;
-    // (undocumented)
-    readonly store?: ApprovalStore;
-}
-
-// @public (undocumented)
-export interface ApprovalRequest {
-    // (undocumented)
-    readonly action: ApprovalAction;
-    // (undocumented)
-    readonly actionHash: string;
-    // (undocumented)
-    readonly createdAt: string;
-    // (undocumented)
-    readonly description: string;
-    // (undocumented)
-    readonly expiresAt: string;
-    // (undocumented)
-    readonly id: string;
-    // (undocumented)
-    readonly resolution?: ApprovalResolution;
-    // (undocumented)
-    readonly status: 'approved' | 'denied' | 'pending';
-}
-
-// @public (undocumented)
-export interface ApprovalRequestInput {
-    // (undocumented)
-    readonly action: ApprovalAction;
-    // (undocumented)
-    readonly description: string;
-    // (undocumented)
-    readonly expiresAt: string;
-}
-
-// @public (undocumented)
-export interface ApprovalResolution {
-    // (undocumented)
-    readonly actorId: string;
-    // (undocumented)
-    readonly decidedAt: string;
-    // (undocumented)
-    readonly decision: 'approved' | 'denied';
-    // (undocumented)
-    readonly reason?: string;
-}
-
-// @public (undocumented)
-export interface ApprovalStore {
-    // (undocumented)
-    create(request: ApprovalRequest): Promise<void>;
-    // (undocumented)
-    decide(command: RecordApprovalDecision): Promise<ApprovalRequest>;
-    // (undocumented)
-    get(id: string): Promise<ApprovalRequest | undefined>;
-}
-
-// @public (undocumented)
-export interface Artifact extends ArtifactRef {
+export interface AudioInput {
     // (undocumented)
     readonly bytes: Uint8Array;
-}
-
-// @public (undocumented)
-export interface ArtifactChecksum {
     // (undocumented)
-    readonly algorithm: 'sha256';
+    readonly channels?: number;
     // (undocumented)
-    readonly value: string;
-}
-
-// @public (undocumented)
-export interface ArtifactRef {
+    readonly durationMs?: number;
     // (undocumented)
-    readonly byteLength: number;
-    // (undocumented)
-    readonly checksum: ArtifactChecksum;
-    // (undocumented)
-    readonly createdAt: string;
-    // (undocumented)
-    readonly filename?: string;
-    // (undocumented)
-    readonly id: string;
-    // (undocumented)
-    readonly metadata?: JsonObject;
+    readonly language?: string;
     // (undocumented)
     readonly mimeType: string;
-}
-
-// @public (undocumented)
-export type ArtifactSource = AsyncIterable<Uint8Array> | Uint8Array;
-
-// @public (undocumented)
-export interface ArtifactStore {
     // (undocumented)
-    delete(id: string): Promise<void>;
+    readonly prompt?: string;
     // (undocumented)
-    get(id: string): Promise<Artifact | undefined>;
-    // (undocumented)
-    put(input: PutArtifact, options?: ArtifactWriteOptions): Promise<ArtifactRef>;
-}
-
-// @public (undocumented)
-export interface ArtifactWriteOptions {
-    // (undocumented)
-    readonly signal?: AbortSignal;
+    readonly sampleRateHz?: number;
 }
 
 // @public (undocumented)
@@ -315,9 +158,6 @@ export type BinarySource = {
     readonly bytes: Uint8Array;
     readonly type: 'bytes';
 } | {
-    readonly artifactId: string;
-    readonly type: 'artifact';
-} | {
     readonly type: 'url';
     readonly url: string;
 } | {
@@ -325,15 +165,6 @@ export type BinarySource = {
     readonly provider: string;
     readonly type: 'provider_file';
 };
-
-// @public
-export class BoundedAgentRuntime {
-    constructor(options: AgentRuntimeOptions);
-    // (undocumented)
-    run(request: AgentRunRequest, options?: AgentRunOptions): Promise<AgentResult>;
-    // (undocumented)
-    stream(request: AgentRunRequest, options?: AgentRunOptions): AsyncGenerator<RunEvent, void, void>;
-}
 
 // @public (undocumented)
 export interface CallOptions {
@@ -355,82 +186,14 @@ export class CharacterTokenEstimator implements TokenEstimator {
 }
 
 // @public
-export class ComposedVoiceRuntime {
-    constructor(options: ComposedVoiceRuntimeOptions);
+export interface ConfiguredProvider extends ModelProvider {
     // (undocumented)
-    run(request: ComposedVoiceTurnRequest, options?: AgentRunOptions): Promise<ComposedVoiceTurnResult>;
+    readonly model: string;
     // (undocumented)
-    stream(request: ComposedVoiceTurnRequest, options?: AgentRunOptions): AsyncGenerator<VoiceTurnEvent, void, void>;
+    readonly speechSynthesis?: SpeechSynthesisProvider;
+    // (undocumented)
+    readonly transcription?: TranscriptionProvider;
 }
-
-// @public (undocumented)
-export interface ComposedVoiceRuntimeOptions {
-    // (undocumented)
-    readonly agent: AgentRunStream;
-    // (undocumented)
-    readonly artifacts?: ArtifactStore;
-    // (undocumented)
-    readonly clock?: () => Date;
-    // (undocumented)
-    readonly idGenerator?: () => string;
-    // (undocumented)
-    readonly monotonicClock?: () => number;
-    // (undocumented)
-    readonly retention?: Partial<VoiceRetentionOptions>;
-    // (undocumented)
-    readonly synthesizer?: SpeechSynthesisProvider;
-    // (undocumented)
-    readonly transcriber: TranscriptionProvider;
-}
-
-// @public (undocumented)
-export interface ComposedVoiceTurnRequest {
-    // (undocumented)
-    readonly agent: AgentDefinition;
-    // (undocumented)
-    readonly audio: AudioPart;
-    // (undocumented)
-    readonly context?: JsonObject;
-    // (undocumented)
-    readonly conversationId?: string;
-    // (undocumented)
-    readonly language?: string;
-    // (undocumented)
-    readonly limits?: Partial<RunLimits>;
-    // (undocumented)
-    readonly prompt?: string;
-    // (undocumented)
-    readonly synthesis?: false | SpeechSynthesisOptions;
-}
-
-// @public (undocumented)
-export interface ComposedVoiceTurnResult {
-    // (undocumented)
-    readonly agentResult?: AgentResult;
-    // (undocumented)
-    readonly assistantTranscript?: string;
-    // (undocumented)
-    readonly error?: SerializedAiError;
-    // (undocumented)
-    readonly inputAudioArtifactId?: string;
-    // (undocumented)
-    readonly outputAudioArtifactId?: string;
-    // (undocumented)
-    readonly status: ComposedVoiceTurnStatus;
-    // (undocumented)
-    readonly synthesis?: SpeechSynthesis_2;
-    // (undocumented)
-    readonly timings: VoiceTurnTimings;
-    // (undocumented)
-    readonly transcription?: Transcription;
-    // (undocumented)
-    readonly turnId: string;
-    // (undocumented)
-    readonly usage: Usage;
-}
-
-// @public (undocumented)
-export type ComposedVoiceTurnStatus = 'agent_failed' | 'completed' | 'persistence_failed' | 'synthesis_failed' | 'transcription_failed';
 
 // @public (undocumented)
 export type ContentPart = AudioPart | DocumentPart | ImagePart | RefusalPart | TextPart | ToolCallPart | ToolResultPart;
@@ -517,31 +280,22 @@ export interface ConversationStore {
 }
 
 // @public (undocumented)
-export interface ConversationSummarizer {
-    // (undocumented)
-    summarize(request: SummarizationRequest, options?: SummarizationOptions): Promise<ConversationSummary>;
-}
+export function createAiClient(options: CreateAiClientOptions): AiClient;
 
 // @public (undocumented)
-export interface ConversationSummary {
+export interface CreateAiClientOptions {
     // (undocumented)
-    readonly conversationId: string;
+    readonly history?: AiHistoryOptions;
     // (undocumented)
-    readonly createdAt: string;
+    readonly instructions?: string;
     // (undocumented)
-    readonly id: string;
+    readonly maxToolSteps?: number;
     // (undocumented)
-    readonly lineage: SummaryLineage;
+    readonly mcp?: readonly McpServer[];
     // (undocumented)
-    readonly model: ModelSelector;
+    readonly provider: ConfiguredProvider;
     // (undocumented)
-    readonly promptName: string;
-    // (undocumented)
-    readonly promptVersion: string;
-    // (undocumented)
-    readonly structuredState?: JsonObject;
-    // (undocumented)
-    readonly text: string;
+    readonly toolTimeoutMs?: number;
 }
 
 // @public (undocumented)
@@ -553,23 +307,23 @@ export interface CreateConversation {
 }
 
 // @public (undocumented)
-export interface DecideApproval {
-    // (undocumented)
-    readonly actorId: string;
-    // (undocumented)
-    readonly decidedAt?: string;
-    // (undocumented)
-    readonly decision: 'approved' | 'denied';
-    // (undocumented)
-    readonly expectedActionHash: string;
-    // (undocumented)
-    readonly reason?: string;
-    // (undocumented)
-    readonly requestId: string;
-}
-
-// @public (undocumented)
-export const defaultRunLimits: RunLimits;
+export type DocumentInput = {
+    readonly bytes: Uint8Array;
+    readonly filename: string;
+    readonly mimeType: string;
+    readonly title?: string;
+} | {
+    readonly filename?: string;
+    readonly mimeType: string;
+    readonly title?: string;
+    readonly url: string;
+} | {
+    readonly fileId: string;
+    readonly filename?: string;
+    readonly mimeType: string;
+    readonly provider: string;
+    readonly title?: string;
+};
 
 // @public (undocumented)
 export interface DocumentPart {
@@ -588,42 +342,6 @@ export interface DocumentPart {
 // @public (undocumented)
 export type FinishReason = 'cancelled' | 'content_filter' | 'error' | 'length' | 'stop' | 'tool_calls' | 'unknown';
 
-// @public
-export class GuardedRealtimeVoiceSession implements RealtimeVoiceSession {
-    constructor(options: GuardedRealtimeVoiceSessionOptions);
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    commitInput(): Promise<void>;
-    // (undocumented)
-    events(): AsyncIterable<RealtimeVoiceEvent>;
-    // (undocumented)
-    get id(): string;
-    // (undocumented)
-    interrupt(): Promise<void>;
-    // (undocumented)
-    sendAudio(chunk: RealtimeAudioChunk): Promise<void>;
-    // (undocumented)
-    sendText(text: string): Promise<void>;
-    // (undocumented)
-    sendToolResult(result: ToolResultPart): Promise<void>;
-    // (undocumented)
-    get state(): RealtimeVoiceSessionState;
-}
-
-// @public (undocumented)
-export interface GuardedRealtimeVoiceSessionOptions {
-    // (undocumented)
-    readonly capabilities: RealtimeVoiceCapabilities;
-    // (undocumented)
-    readonly config: RealtimeVoiceSessionConfig;
-    // (undocumented)
-    readonly session: RealtimeVoiceSession;
-}
-
-// @public (undocumented)
-export function hashApprovalAction(action: ApprovalAction): Promise<string>;
-
 // @public (undocumented)
 export interface ImagePart {
     // (undocumented)
@@ -634,37 +352,6 @@ export interface ImagePart {
     readonly source: BinarySource;
     // (undocumented)
     readonly type: 'image';
-}
-
-// @public
-export class InMemoryApprovalStore implements ApprovalStore {
-    // (undocumented)
-    create(request: ApprovalRequest): Promise<void>;
-    // (undocumented)
-    decide(command: RecordApprovalDecision): Promise<ApprovalRequest>;
-    // (undocumented)
-    get(id: string): Promise<ApprovalRequest | undefined>;
-}
-
-// @public
-export class InMemoryArtifactStore implements ArtifactStore {
-    constructor(options?: InMemoryArtifactStoreOptions);
-    // (undocumented)
-    delete(id: string): Promise<void>;
-    // (undocumented)
-    get(id: string): Promise<Artifact | undefined>;
-    // (undocumented)
-    put(input: PutArtifact, options?: ArtifactWriteOptions): Promise<ArtifactRef>;
-}
-
-// @public (undocumented)
-export interface InMemoryArtifactStoreOptions {
-    // (undocumented)
-    readonly clock?: () => Date;
-    // (undocumented)
-    readonly idGenerator?: () => string;
-    // (undocumented)
-    readonly maxArtifactBytes?: number;
 }
 
 // @public
@@ -691,14 +378,6 @@ export interface InMemoryConversationStoreOptions {
 }
 
 // @public
-export class InMemoryWorkflowRunStore implements WorkflowRunStore {
-    // (undocumented)
-    get(runId: string): Promise<WorkflowRunState | undefined>;
-    // (undocumented)
-    put(state: WorkflowRunState, options: SaveWorkflowRunOptions): Promise<WorkflowRunState>;
-}
-
-// @public
 export type JsonArray = readonly JsonValue[];
 
 // @public
@@ -722,6 +401,22 @@ export interface LocalTool {
     readonly definition: ToolDefinition;
     // (undocumented)
     readonly execute: ToolHandler;
+}
+
+// @public (undocumented)
+export type McpServer = McpServerOptions | string | URL;
+
+// @public (undocumented)
+export interface McpServerOptions {
+    readonly fetch?: typeof globalThis.fetch;
+    // (undocumented)
+    readonly headers?: Readonly<Record<string, string>> | (() => Promise<Readonly<Record<string, string>>> | Readonly<Record<string, string>>);
+    // (undocumented)
+    readonly name?: string;
+    // (undocumented)
+    readonly timeoutMs?: number;
+    // (undocumented)
+    readonly url: string | URL;
 }
 
 // @public (undocumented)
@@ -775,6 +470,17 @@ export interface ModelCapabilities {
     };
     // (undocumented)
     readonly transcription: boolean;
+}
+
+// @public
+export class ModelClient {
+    constructor(provider: ModelProvider);
+    // (undocumented)
+    capabilities(request: ModelRequest): Promise<ModelCapabilities>;
+    // (undocumented)
+    generate(request: ModelRequest, options?: CallOptions): Promise<ModelResponse>;
+    // (undocumented)
+    stream(request: ModelRequest, options?: CallOptions): AsyncGenerator<ModelStreamEvent, void, void>;
 }
 
 // @public (undocumented)
@@ -918,572 +624,6 @@ export class PairSafeHistorySelector {
 }
 
 // @public (undocumented)
-export type PolicyDecision = {
-    readonly outcome: 'allow';
-    readonly reason: string;
-} | {
-    readonly outcome: 'deny';
-    readonly reason: string;
-} | {
-    readonly outcome: 'dry_run';
-    readonly reason: string;
-    readonly result?: ToolExecutionOutput;
-};
-
-// @public (undocumented)
-export interface PolicyEvaluationContext {
-    // (undocumented)
-    readonly agentId: string;
-    // (undocumented)
-    readonly call: ToolCall;
-    // (undocumented)
-    readonly context?: JsonObject;
-    // (undocumented)
-    readonly runId: string;
-    // (undocumented)
-    readonly tool: ToolDefinition;
-}
-
-// @public (undocumented)
-export interface PromptDefinition extends PromptRef {
-    // (undocumented)
-    readonly description?: string;
-    // (undocumented)
-    readonly metadata?: JsonObject;
-    // (undocumented)
-    readonly template: string;
-    // (undocumented)
-    readonly variablesSchema: JsonSchema;
-}
-
-// @public (undocumented)
-export interface PromptEnvironmentBinding {
-    // (undocumented)
-    readonly environment: string;
-    // (undocumented)
-    readonly name: string;
-    // (undocumented)
-    readonly version: string;
-}
-
-// @public (undocumented)
-export interface PromptRef {
-    // (undocumented)
-    readonly name: string;
-    // (undocumented)
-    readonly version: string;
-}
-
-// @public
-export class PromptRegistry {
-    constructor(definitions?: readonly PromptDefinition[]);
-    // (undocumented)
-    bindEnvironment(binding: PromptEnvironmentBinding): void;
-    // (undocumented)
-    get(reference: PromptRef): PromptDefinition | undefined;
-    // (undocumented)
-    register(definition: PromptDefinition): void;
-    // (undocumented)
-    render(selector: PromptSelector, variables: JsonObject): Promise<RenderedPrompt>;
-    // (undocumented)
-    resolve(selector: PromptSelector): PromptDefinition;
-}
-
-// @public (undocumented)
-export type PromptSelector = {
-    readonly environment: string;
-    readonly name: string;
-} | {
-    readonly name: string;
-    readonly version: string;
-};
-
-// @public (undocumented)
-export interface ProviderFileAdapter {
-    // (undocumented)
-    delete(fileId: string, scopeId: string, options?: CallOptions): Promise<void>;
-    // (undocumented)
-    readonly provider: string;
-    // (undocumented)
-    upload(request: ProviderFileUploadRequest, options?: CallOptions): Promise<ProviderFileUpload>;
-}
-
-// @public (undocumented)
-export interface ProviderFileCleanupFailure {
-    // (undocumented)
-    readonly code: string;
-    // (undocumented)
-    readonly providerFileId: string;
-}
-
-// @public (undocumented)
-export interface ProviderFileCleanupReport {
-    // (undocumented)
-    readonly deleted: number;
-    // (undocumented)
-    readonly expiredLeases: number;
-    // (undocumented)
-    readonly failures: readonly ProviderFileCleanupFailure[];
-}
-
-// @public (undocumented)
-export interface ProviderFileEventBase<Type extends string> {
-    // (undocumented)
-    readonly errorCode?: string;
-    // (undocumented)
-    readonly leaseId?: string;
-    // (undocumented)
-    readonly provider: string;
-    // (undocumented)
-    readonly providerFileId: string;
-    // (undocumented)
-    readonly sequence: number;
-    // (undocumented)
-    readonly timestamp: string;
-    // (undocumented)
-    readonly type: Type;
-}
-
-// @public (undocumented)
-export interface ProviderFileLease {
-    // (undocumented)
-    readonly acquiredAt: string;
-    // (undocumented)
-    readonly artifactChecksum: ArtifactChecksum;
-    // (undocumented)
-    readonly artifactId: string;
-    // (undocumented)
-    readonly deleteOnRelease: boolean;
-    // (undocumented)
-    readonly expiresAt: string;
-    // (undocumented)
-    readonly id: string;
-    // (undocumented)
-    readonly provider: string;
-    // (undocumented)
-    readonly providerFileId: string;
-    // (undocumented)
-    readonly purpose: string;
-    // (undocumented)
-    readonly reused: boolean;
-    // (undocumented)
-    readonly scopeId: string;
-}
-
-// @public
-export class ProviderFileLeaseManager {
-    constructor(options: ProviderFileLeaseManagerOptions);
-    // (undocumented)
-    acquire(request: AcquireProviderFileLease, options?: CallOptions): Promise<ProviderFileLease>;
-    // (undocumented)
-    cleanup(options?: CallOptions): Promise<ProviderFileCleanupReport>;
-    // (undocumented)
-    get events(): readonly ProviderFileLifecycleEvent[];
-    // (undocumented)
-    get(leaseId: string): ProviderFileLease | undefined;
-    // (undocumented)
-    release(leaseId: string, options?: CallOptions): Promise<void>;
-}
-
-// @public (undocumented)
-export interface ProviderFileLeaseManagerOptions {
-    // (undocumented)
-    readonly adapter: ProviderFileAdapter;
-    // (undocumented)
-    readonly artifacts: ArtifactStore;
-    // (undocumented)
-    readonly clock?: () => Date;
-    // (undocumented)
-    readonly defaultLeaseDurationMs?: number;
-    // (undocumented)
-    readonly idGenerator?: () => string;
-}
-
-// @public (undocumented)
-export type ProviderFileLifecycleEvent = ProviderFileEventBase<'provider_file.cleanup_failed'> | ProviderFileEventBase<'provider_file.deleted'> | ProviderFileEventBase<'provider_file.lease_expired'> | ProviderFileEventBase<'provider_file.released'> | ProviderFileEventBase<'provider_file.reused'> | ProviderFileEventBase<'provider_file.uploaded'>;
-
-// @public (undocumented)
-export interface ProviderFileUpload {
-    // (undocumented)
-    readonly expiresAt?: string;
-    // (undocumented)
-    readonly fileId: string;
-}
-
-// @public (undocumented)
-export interface ProviderFileUploadRequest {
-    // (undocumented)
-    readonly artifact: Artifact;
-    // (undocumented)
-    readonly purpose: string;
-    readonly scopeId: string;
-}
-
-// @public (undocumented)
-export interface PutArtifact {
-    // (undocumented)
-    readonly filename?: string;
-    // (undocumented)
-    readonly metadata?: JsonObject;
-    // (undocumented)
-    readonly mimeType: string;
-    // (undocumented)
-    readonly source: ArtifactSource;
-}
-
-// @public (undocumented)
-export interface RealtimeAudioChunk {
-    // (undocumented)
-    readonly bytes: Uint8Array;
-    // (undocumented)
-    readonly durationMs?: number;
-}
-
-// @public (undocumented)
-export type RealtimeAudioEncoding = 'aac' | 'g711_alaw' | 'g711_ulaw' | 'mp3' | 'opus' | 'pcm16';
-
-// @public (undocumented)
-export interface RealtimeAudioFormat {
-    // (undocumented)
-    readonly channels?: number;
-    // (undocumented)
-    readonly encoding: RealtimeAudioEncoding;
-    // (undocumented)
-    readonly mimeType: string;
-    // (undocumented)
-    readonly sampleRateHz?: number;
-}
-
-// @public
-export interface RealtimeClientSecret {
-    // (undocumented)
-    readonly expiresAt: string;
-    // (undocumented)
-    readonly provider: string;
-    // (undocumented)
-    readonly sessionId: string;
-    // (undocumented)
-    readonly value: string;
-}
-
-// @public (undocumented)
-export interface RealtimeClientSecretIssuer {
-    // (undocumented)
-    issue(config: RealtimeVoiceSessionConfig, options?: CallOptions): Promise<RealtimeClientSecret>;
-}
-
-// @public (undocumented)
-export interface RealtimeConversationMessageCommittedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly message: ConversationMessage;
-    // (undocumented)
-    readonly type: 'realtime.conversation.message_committed';
-}
-
-// @public (undocumented)
-export interface RealtimeInputAudioStartedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly itemId: string;
-    // (undocumented)
-    readonly type: 'realtime.input_audio.started';
-}
-
-// @public (undocumented)
-export interface RealtimeInputAudioStoppedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly audioDurationMs?: number;
-    // (undocumented)
-    readonly itemId: string;
-    // (undocumented)
-    readonly type: 'realtime.input_audio.stopped';
-}
-
-// @public (undocumented)
-export interface RealtimeInputTranscriptCompletedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly itemId: string;
-    // (undocumented)
-    readonly transcript: string;
-    // (undocumented)
-    readonly type: 'realtime.input_transcript.completed';
-}
-
-// @public (undocumented)
-export interface RealtimeInputTranscriptDeltaEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly delta: string;
-    // (undocumented)
-    readonly itemId: string;
-    // (undocumented)
-    readonly type: 'realtime.input_transcript.delta';
-}
-
-// @public (undocumented)
-export interface RealtimeInputTranscriptionConfig {
-    // (undocumented)
-    readonly language?: string;
-    // (undocumented)
-    readonly model?: ModelSelector;
-    // (undocumented)
-    readonly prompt?: string;
-}
-
-// @public (undocumented)
-export interface RealtimeOperationFailedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly operationId?: string;
-    // (undocumented)
-    readonly recoverable: boolean;
-    // (undocumented)
-    readonly type: 'realtime.operation.failed';
-}
-
-// @public (undocumented)
-export interface RealtimeOutputAudioCompletedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly audioDurationMs?: number;
-    // (undocumented)
-    readonly responseId: string;
-    // (undocumented)
-    readonly type: 'realtime.output_audio.completed';
-}
-
-// @public (undocumented)
-export interface RealtimeOutputAudioDeltaEvent extends RealtimeVoiceEventBase {
-    readonly chunk: RealtimeAudioChunk;
-    // (undocumented)
-    readonly responseId: string;
-    // (undocumented)
-    readonly type: 'realtime.output_audio.delta';
-}
-
-// @public (undocumented)
-export interface RealtimeOutputTranscriptCompletedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly responseId: string;
-    // (undocumented)
-    readonly transcript: string;
-    // (undocumented)
-    readonly type: 'realtime.output_transcript.completed';
-}
-
-// @public (undocumented)
-export interface RealtimeOutputTranscriptDeltaEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly delta: string;
-    // (undocumented)
-    readonly responseId: string;
-    // (undocumented)
-    readonly type: 'realtime.output_transcript.delta';
-}
-
-// @public (undocumented)
-export interface RealtimeResponseFailedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly recoverable: boolean;
-    // (undocumented)
-    readonly responseId: string;
-    // (undocumented)
-    readonly type: 'realtime.response.failed';
-}
-
-// @public (undocumented)
-export interface RealtimeResponseInterruptedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly deliveredAudioMs?: number;
-    // (undocumented)
-    readonly deliveredTranscript?: string;
-    // (undocumented)
-    readonly responseId: string;
-    // (undocumented)
-    readonly type: 'realtime.response.interrupted';
-}
-
-// @public (undocumented)
-export interface RealtimeResponseStartedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly responseId: string;
-    // (undocumented)
-    readonly type: 'realtime.response.started';
-}
-
-// @public (undocumented)
-export interface RealtimeSessionClosedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly reason: 'cancelled' | 'client_closed' | 'provider_closed' | 'timeout';
-    // (undocumented)
-    readonly type: 'realtime.session.closed';
-}
-
-// @public (undocumented)
-export interface RealtimeSessionFailedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly recoverable: boolean;
-    // (undocumented)
-    readonly type: 'realtime.session.failed';
-}
-
-// @public (undocumented)
-export interface RealtimeSessionStartedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly config: RealtimeVoiceSessionConfig;
-    // (undocumented)
-    readonly type: 'realtime.session.started';
-}
-
-// @public (undocumented)
-export interface RealtimeToolCallProposedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly call: ToolCall;
-    // (undocumented)
-    readonly responseId: string;
-    // (undocumented)
-    readonly type: 'realtime.tool_call.proposed';
-}
-
-// @public (undocumented)
-export interface RealtimeToolResultAcceptedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly callId: string;
-    // (undocumented)
-    readonly type: 'realtime.tool_result.accepted';
-}
-
-// @public (undocumented)
-export type RealtimeTurnDetection = {
-    readonly type: 'manual';
-} | {
-    readonly createResponse?: boolean;
-    readonly interruptResponse?: boolean;
-    readonly prefixPaddingMs?: number;
-    readonly silenceDurationMs?: number;
-    readonly threshold?: number;
-    readonly type: 'server_vad';
-};
-
-// @public (undocumented)
-export interface RealtimeUsageUpdatedEvent extends RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly type: 'realtime.usage.updated';
-    // (undocumented)
-    readonly usage: Usage;
-}
-
-// @public (undocumented)
-export interface RealtimeVoiceCapabilities {
-    // (undocumented)
-    readonly clientSecrets: boolean;
-    // (undocumented)
-    readonly inputAudioEncodings: readonly RealtimeAudioEncoding[];
-    // (undocumented)
-    readonly interruption: boolean;
-    // (undocumented)
-    readonly manualCommit: boolean;
-    // (undocumented)
-    readonly maxAudioChunkBytes?: number;
-    // (undocumented)
-    readonly outputAudioEncodings: readonly RealtimeAudioEncoding[];
-    // (undocumented)
-    readonly serverVad: boolean;
-    // (undocumented)
-    readonly textInput: boolean;
-    // (undocumented)
-    readonly toolCalls: boolean;
-}
-
-// @public (undocumented)
-export type RealtimeVoiceEvent = RealtimeConversationMessageCommittedEvent | RealtimeInputAudioStartedEvent | RealtimeInputAudioStoppedEvent | RealtimeInputTranscriptCompletedEvent | RealtimeInputTranscriptDeltaEvent | RealtimeOutputAudioCompletedEvent | RealtimeOutputAudioDeltaEvent | RealtimeOutputTranscriptCompletedEvent | RealtimeOutputTranscriptDeltaEvent | RealtimeOperationFailedEvent | RealtimeResponseInterruptedEvent | RealtimeResponseFailedEvent | RealtimeResponseStartedEvent | RealtimeSessionClosedEvent | RealtimeSessionFailedEvent | RealtimeSessionStartedEvent | RealtimeToolCallProposedEvent | RealtimeToolResultAcceptedEvent | RealtimeUsageUpdatedEvent;
-
-// @public (undocumented)
-export interface RealtimeVoiceEventBase {
-    // (undocumented)
-    readonly eventId: string;
-    // (undocumented)
-    readonly occurredAt: string;
-    // (undocumented)
-    readonly sequence: number;
-    // (undocumented)
-    readonly sessionId: string;
-}
-
-// @public (undocumented)
-export interface RealtimeVoiceProvider {
-    // (undocumented)
-    capabilities(model: ModelSelector): Promise<RealtimeVoiceCapabilities>;
-    // (undocumented)
-    connect(config: RealtimeVoiceSessionConfig, options?: CallOptions): Promise<RealtimeVoiceSession>;
-}
-
-// @public (undocumented)
-export interface RealtimeVoiceSession {
-    // (undocumented)
-    close(): Promise<void>;
-    // (undocumented)
-    commitInput(): Promise<void>;
-    // (undocumented)
-    events(): AsyncIterable<RealtimeVoiceEvent>;
-    // (undocumented)
-    readonly id: string;
-    // (undocumented)
-    interrupt(): Promise<void>;
-    // (undocumented)
-    sendAudio(chunk: RealtimeAudioChunk): Promise<void>;
-    // (undocumented)
-    sendText(text: string): Promise<void>;
-    // (undocumented)
-    sendToolResult(result: ToolResultPart): Promise<void>;
-    // (undocumented)
-    readonly state: RealtimeVoiceSessionState;
-}
-
-// @public (undocumented)
-export interface RealtimeVoiceSessionConfig {
-    // (undocumented)
-    readonly conversationId?: string;
-    // (undocumented)
-    readonly inputAudio: RealtimeAudioFormat;
-    // (undocumented)
-    readonly inputTranscription?: false | RealtimeInputTranscriptionConfig;
-    // (undocumented)
-    readonly instructions?: string;
-    // (undocumented)
-    readonly metadata?: JsonObject;
-    // (undocumented)
-    readonly model: ModelSelector;
-    // (undocumented)
-    readonly outputAudio: RealtimeAudioFormat;
-    // (undocumented)
-    readonly turnDetection: RealtimeTurnDetection;
-    // (undocumented)
-    readonly voice?: string;
-}
-
-// @public (undocumented)
-export type RealtimeVoiceSessionState = 'closed' | 'closing' | 'failed' | 'open';
-
-// @public
-export interface RecordApprovalDecision {
-    // (undocumented)
-    readonly actorId: string;
-    // (undocumented)
-    readonly decidedAt: string;
-    // (undocumented)
-    readonly decision: 'approved' | 'denied';
-    // (undocumented)
-    readonly expectedActionHash: string;
-    // (undocumented)
-    readonly reason?: string;
-    // (undocumented)
-    readonly requestId: string;
-}
-
-// @public (undocumented)
 export interface ReducedModelStream {
     // (undocumented)
     readonly response: ModelResponse;
@@ -1500,16 +640,6 @@ export interface RefusalPart {
     readonly reason: string;
     // (undocumented)
     readonly type: 'refusal';
-}
-
-// @public (undocumented)
-export interface RenderedPrompt extends PromptRef {
-    // (undocumented)
-    readonly fingerprint: string;
-    // (undocumented)
-    readonly text: string;
-    // (undocumented)
-    readonly variables: JsonObject;
 }
 
 // @public (undocumented)
@@ -1537,183 +667,6 @@ export type ResponseFormat = {
 };
 
 // @public (undocumented)
-export interface RunBudgetSnapshot {
-    // (undocumented)
-    readonly elapsedMs: number;
-    // (undocumented)
-    readonly inputTokens?: number;
-    // (undocumented)
-    readonly modelSteps: number;
-    // (undocumented)
-    readonly outputTokens?: number;
-    // (undocumented)
-    readonly toolCalls: number;
-    // (undocumented)
-    readonly totalTokens?: number;
-}
-
-// @public (undocumented)
-export interface RunBudgetUpdatedEvent extends RunEventBase {
-    // (undocumented)
-    readonly budget: RunBudgetSnapshot;
-    // (undocumented)
-    readonly type: 'run.budget.updated';
-}
-
-// @public (undocumented)
-export interface RunCancelledEvent extends RunEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly result: AgentResult;
-    // (undocumented)
-    readonly type: 'run.cancelled';
-}
-
-// @public (undocumented)
-export interface RunCompletedEvent extends RunEventBase {
-    // (undocumented)
-    readonly result: AgentResult;
-    // (undocumented)
-    readonly type: 'run.completed';
-}
-
-// @public (undocumented)
-export type RunEvent = RunBudgetUpdatedEvent | RunCancelledEvent | RunCompletedEvent | RunFailedEvent | RunLimitExceededEvent | RunModelCompletedEvent | RunModelStartedEvent | RunPolicyDecidedEvent | RunStartedEvent | RunToolCompletedEvent | RunToolProposedEvent | RunToolStartedEvent | RunUsageUpdatedEvent;
-
-// @public (undocumented)
-export interface RunEventBase {
-    // (undocumented)
-    readonly eventId: string;
-    // (undocumented)
-    readonly occurredAt: string;
-    // (undocumented)
-    readonly runId: string;
-    // (undocumented)
-    readonly sequence: number;
-}
-
-// @public (undocumented)
-export interface RunFailedEvent extends RunEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly result: AgentResult;
-    // (undocumented)
-    readonly type: 'run.failed';
-}
-
-// @public (undocumented)
-export interface RunLimitExceededEvent extends RunEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly limit: keyof RunLimits;
-    // (undocumented)
-    readonly result: AgentResult;
-    // (undocumented)
-    readonly type: 'run.limit_exceeded';
-}
-
-// @public (undocumented)
-export interface RunLimits {
-    // (undocumented)
-    readonly maxCallsPerTool: number;
-    // (undocumented)
-    readonly maxConcurrentTools: number;
-    // (undocumented)
-    readonly maxDurationMs: number;
-    // (undocumented)
-    readonly maxInputTokens: number;
-    // (undocumented)
-    readonly maxModelSteps: number;
-    // (undocumented)
-    readonly maxOutputTokens: number;
-    // (undocumented)
-    readonly maxRepeatedToolFailures: number;
-    // (undocumented)
-    readonly maxToolCalls: number;
-    // (undocumented)
-    readonly maxTotalTokens: number;
-}
-
-// @public (undocumented)
-export interface RunModelCompletedEvent extends RunEventBase {
-    // (undocumented)
-    readonly response: ModelResponse;
-    // (undocumented)
-    readonly step: number;
-    // (undocumented)
-    readonly type: 'run.model.completed';
-}
-
-// @public (undocumented)
-export interface RunModelStartedEvent extends RunEventBase {
-    // (undocumented)
-    readonly request: ModelRequest;
-    // (undocumented)
-    readonly step: number;
-    // (undocumented)
-    readonly type: 'run.model.started';
-}
-
-// @public (undocumented)
-export interface RunPolicyDecidedEvent extends RunEventBase {
-    // (undocumented)
-    readonly call: ToolCall;
-    // (undocumented)
-    readonly decision: PolicyDecision;
-    // (undocumented)
-    readonly type: 'run.policy.decided';
-}
-
-// @public (undocumented)
-export interface RunStartedEvent extends RunEventBase {
-    // (undocumented)
-    readonly type: 'run.started';
-}
-
-// @public (undocumented)
-export interface RunToolCompletedEvent extends RunEventBase {
-    // (undocumented)
-    readonly call: ToolCall;
-    // (undocumented)
-    readonly result: ToolResultPart;
-    // (undocumented)
-    readonly type: 'run.tool.completed';
-}
-
-// @public (undocumented)
-export interface RunToolProposedEvent extends RunEventBase {
-    // (undocumented)
-    readonly call: ToolCall;
-    // (undocumented)
-    readonly type: 'run.tool.proposed';
-}
-
-// @public (undocumented)
-export interface RunToolStartedEvent extends RunEventBase {
-    // (undocumented)
-    readonly call: ToolCall;
-    // (undocumented)
-    readonly type: 'run.tool.started';
-}
-
-// @public (undocumented)
-export interface RunUsageUpdatedEvent extends RunEventBase {
-    // (undocumented)
-    readonly type: 'run.usage.updated';
-    // (undocumented)
-    readonly usage: Usage;
-}
-
-// @public
-export class SafeDefaultToolPolicy implements ToolPolicy {
-    // (undocumented)
-    evaluate(context: PolicyEvaluationContext): PolicyDecision;
-}
-
-// @public (undocumented)
 export interface SamplingOptions {
     // (undocumented)
     readonly seed?: number;
@@ -1721,11 +674,6 @@ export interface SamplingOptions {
     readonly temperature?: number;
     // (undocumented)
     readonly topP?: number;
-}
-
-// @public (undocumented)
-export interface SaveWorkflowRunOptions {
-    readonly expectedRevision: number | null;
 }
 
 // @public (undocumented)
@@ -1781,46 +729,7 @@ export interface SpeechSynthesisRequest extends SpeechSynthesisOptions {
 }
 
 // @public (undocumented)
-export interface SummarizationOptions {
-    // (undocumented)
-    readonly signal?: AbortSignal;
-}
-
-// @public (undocumented)
-export interface SummarizationRequest {
-    // (undocumented)
-    readonly conversationId: string;
-    // (undocumented)
-    readonly firstMessageId: string;
-    // (undocumented)
-    readonly lastMessageId: string;
-    // (undocumented)
-    readonly messages: readonly ConversationMessage[];
-    // (undocumented)
-    readonly sourceMessagesRetained: boolean;
-}
-
-// @public (undocumented)
-export interface SummaryLineage {
-    // (undocumented)
-    readonly firstMessageId: string;
-    // (undocumented)
-    readonly lastMessageId: string;
-    // (undocumented)
-    readonly sourceMessagesRetained: boolean;
-}
-
-// @public (undocumented)
 export type TerminalModelEvent = ModelResponseCompletedEvent | ModelResponseFailedEvent;
-
-// @public (undocumented)
-export type TerminalRealtimeVoiceEvent = RealtimeSessionClosedEvent | RealtimeSessionFailedEvent;
-
-// @public (undocumented)
-export type TerminalRunEvent = RunCancelledEvent | RunCompletedEvent | RunFailedEvent | RunLimitExceededEvent;
-
-// @public (undocumented)
-export type TerminalVoiceTurnEvent = VoiceTurnCompletedEvent | VoiceTurnFailedEvent;
 
 // @public (undocumented)
 export interface TextPart {
@@ -1848,12 +757,7 @@ export interface ToolAnnotations {
     readonly openWorld?: boolean;
     // (undocumented)
     readonly readOnly?: boolean;
-    // (undocumented)
-    readonly requiresApproval?: boolean;
 }
-
-// @public (undocumented)
-export function toolApprovalAction(agentId: string, runId: string, call: ToolCall): ApprovalAction;
 
 // @public (undocumented)
 export interface ToolCall {
@@ -1926,12 +830,6 @@ export interface ToolExecutionOutput {
 // @public (undocumented)
 export type ToolHandler = (arguments_: JsonObject, context: ToolExecutionContext) => Promise<ToolExecutionOutput> | ToolExecutionOutput;
 
-// @public (undocumented)
-export interface ToolPolicy {
-    // (undocumented)
-    evaluate(context: PolicyEvaluationContext): Promise<PolicyDecision> | PolicyDecision;
-}
-
 // @public
 export class ToolRegistry {
     constructor(tools?: readonly LocalTool[]);
@@ -1971,7 +869,7 @@ export interface ToolResultPart {
     // (undocumented)
     readonly error?: ToolResultError;
     // (undocumented)
-    readonly status: 'cancelled' | 'denied' | 'error' | 'success';
+    readonly status: 'cancelled' | 'error' | 'success';
     // (undocumented)
     readonly structuredContent?: JsonValue;
     // (undocumented)
@@ -2052,423 +950,9 @@ export interface Usage {
 export function validateModelRequest(request: ModelRequest, capabilities: ModelCapabilities, providerId: string, streaming: boolean): void;
 
 // @public (undocumented)
-export function validateRealtimeVoiceConfig(config: RealtimeVoiceSessionConfig, capabilities: RealtimeVoiceCapabilities): void;
-
-// @public (undocumented)
-export interface VoiceAgentEvent extends VoiceTurnEventBase {
-    // (undocumented)
-    readonly event: RunEvent;
-    // (undocumented)
-    readonly type: 'voice.agent.event';
-}
-
-// @public (undocumented)
 export interface VoiceOperationOptions {
     // (undocumented)
     readonly signal?: AbortSignal;
-}
-
-// @public (undocumented)
-export interface VoiceRetentionOptions {
-    // (undocumented)
-    readonly inputAudio: boolean;
-    // (undocumented)
-    readonly outputAudio: boolean;
-}
-
-// @public (undocumented)
-export interface VoiceSynthesisCompletedEvent extends VoiceTurnEventBase {
-    // (undocumented)
-    readonly artifactId?: string;
-    // (undocumented)
-    readonly durationMs?: number;
-    // (undocumented)
-    readonly latencyMs: number;
-    // (undocumented)
-    readonly mimeType: string;
-    // (undocumented)
-    readonly type: 'voice.synthesis.completed';
-}
-
-// @public (undocumented)
-export interface VoiceTranscriptCompletedEvent extends VoiceTurnEventBase {
-    // (undocumented)
-    readonly latencyMs: number;
-    // (undocumented)
-    readonly transcription: Transcription;
-    // (undocumented)
-    readonly type: 'voice.transcript.completed';
-}
-
-// @public (undocumented)
-export interface VoiceTranscriptDeltaEvent extends VoiceTurnEventBase {
-    // (undocumented)
-    readonly delta: string;
-    // (undocumented)
-    readonly type: 'voice.transcript.delta';
-}
-
-// @public (undocumented)
-export interface VoiceTurnCompletedEvent extends VoiceTurnEventBase {
-    // (undocumented)
-    readonly result: ComposedVoiceTurnResult;
-    // (undocumented)
-    readonly type: 'voice.turn.completed';
-}
-
-// @public (undocumented)
-export type VoiceTurnEvent = VoiceAgentEvent | VoiceSynthesisCompletedEvent | VoiceTranscriptCompletedEvent | VoiceTranscriptDeltaEvent | VoiceTurnCompletedEvent | VoiceTurnFailedEvent | VoiceTurnStartedEvent;
-
-// @public (undocumented)
-export interface VoiceTurnEventBase {
-    // (undocumented)
-    readonly eventId: string;
-    // (undocumented)
-    readonly occurredAt: string;
-    // (undocumented)
-    readonly sequence: number;
-    // (undocumented)
-    readonly turnId: string;
-}
-
-// @public (undocumented)
-export interface VoiceTurnFailedEvent extends VoiceTurnEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly result: ComposedVoiceTurnResult;
-    // (undocumented)
-    readonly type: 'voice.turn.failed';
-}
-
-// @public (undocumented)
-export interface VoiceTurnStartedEvent extends VoiceTurnEventBase {
-    // (undocumented)
-    readonly type: 'voice.turn.started';
-}
-
-// @public (undocumented)
-export interface VoiceTurnTimings {
-    // (undocumented)
-    readonly agentMs?: number;
-    // (undocumented)
-    readonly inputPersistenceMs?: number;
-    // (undocumented)
-    readonly outputPersistenceMs?: number;
-    // (undocumented)
-    readonly synthesisMs?: number;
-    // (undocumented)
-    readonly totalMs: number;
-    // (undocumented)
-    readonly transcriptionMs?: number;
-}
-
-// @public (undocumented)
-export interface WorkflowApprovalCheckpoint {
-    // (undocumented)
-    readonly action: ApprovalRequestInput['action'];
-    // (undocumented)
-    readonly output: JsonValue;
-    // (undocumented)
-    readonly requestId: string;
-    // (undocumented)
-    readonly stageId: string;
-}
-
-// @public (undocumented)
-export interface WorkflowApprovalRequestedEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly approval: ApprovalRequest;
-    // (undocumented)
-    readonly stageId: string;
-    // (undocumented)
-    readonly type: 'workflow.approval.requested';
-}
-
-// @public (undocumented)
-export interface WorkflowAwaitingApprovalEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly approvalRequestId: string;
-    // (undocumented)
-    readonly stageId: string;
-    // (undocumented)
-    readonly type: 'workflow.awaiting_approval';
-}
-
-// @public (undocumented)
-export interface WorkflowCancelledEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly type: 'workflow.cancelled';
-}
-
-// @public (undocumented)
-export interface WorkflowCompletedEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly type: 'workflow.completed';
-}
-
-// @public (undocumented)
-export interface WorkflowDefinition extends WorkflowRef {
-    // (undocumented)
-    readonly description?: string;
-    // (undocumented)
-    readonly inputSchema: JsonSchema;
-    // (undocumented)
-    readonly metadata?: JsonObject;
-    // (undocumented)
-    readonly outputSchema: JsonSchema;
-    // (undocumented)
-    readonly stages: readonly WorkflowStageDefinition[];
-}
-
-// @public (undocumented)
-export type WorkflowEvent = WorkflowApprovalRequestedEvent | WorkflowAwaitingApprovalEvent | WorkflowCancelledEvent | WorkflowCompletedEvent | WorkflowFailedEvent | WorkflowResumedEvent | WorkflowStageCompletedEvent | WorkflowStageRetryingEvent | WorkflowStageStartedEvent | WorkflowStartedEvent;
-
-// @public (undocumented)
-export interface WorkflowEventBase extends WorkflowRef {
-    // (undocumented)
-    readonly eventId: string;
-    // (undocumented)
-    readonly occurredAt: string;
-    // (undocumented)
-    readonly runId: string;
-    // (undocumented)
-    readonly sequence: number;
-}
-
-// @public (undocumented)
-export interface WorkflowExecutionContext extends WorkflowRef {
-    // (undocumented)
-    readonly attempt: number;
-    // (undocumented)
-    readonly deadline: string;
-    // (undocumented)
-    readonly runId: string;
-    // (undocumented)
-    readonly signal: AbortSignal;
-    // (undocumented)
-    readonly stageId: string;
-}
-
-// @public (undocumented)
-export interface WorkflowExecutor {
-    // (undocumented)
-    readonly effect: WorkflowExecutorEffect;
-    // (undocumented)
-    readonly execute: WorkflowExecutorHandler;
-    // (undocumented)
-    readonly id: string;
-}
-
-// @public (undocumented)
-export type WorkflowExecutorEffect = 'external' | 'idempotent' | 'none';
-
-// @public (undocumented)
-export type WorkflowExecutorHandler = (input: JsonValue, context: WorkflowExecutionContext) => Promise<WorkflowStageOutcome> | WorkflowStageOutcome;
-
-// @public (undocumented)
-export interface WorkflowFailedEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly type: 'workflow.failed';
-}
-
-// @public (undocumented)
-export interface WorkflowRef {
-    // (undocumented)
-    readonly name: string;
-    // (undocumented)
-    readonly version: string;
-}
-
-// @public (undocumented)
-export interface WorkflowResumedEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly type: 'workflow.resumed';
-}
-
-// @public (undocumented)
-export interface WorkflowRetryPolicy {
-    readonly maxAttempts: number;
-}
-
-// @public
-export class WorkflowRunner {
-    constructor(options: WorkflowRunnerOptions);
-    // (undocumented)
-    resume(runId: string, options?: WorkflowRunOptions): Promise<WorkflowRunResult>;
-    // (undocumented)
-    run(workflow: WorkflowRef, input: JsonValue, options?: WorkflowRunOptions): Promise<WorkflowRunResult>;
-}
-
-// @public (undocumented)
-export interface WorkflowRunnerLimits {
-    readonly maxActiveDurationMs: number;
-    // (undocumented)
-    readonly maxStageAttempts: number;
-    // (undocumented)
-    readonly maxStages: number;
-}
-
-// @public (undocumented)
-export interface WorkflowRunnerOptions {
-    // (undocumented)
-    readonly approvals: ApprovalCoordinator;
-    // (undocumented)
-    readonly clock?: () => Date;
-    // (undocumented)
-    readonly definitions: readonly WorkflowDefinition[];
-    // (undocumented)
-    readonly executors: readonly WorkflowExecutor[];
-    // (undocumented)
-    readonly idGenerator?: () => string;
-    // (undocumented)
-    readonly limits?: Partial<WorkflowRunnerLimits>;
-    // (undocumented)
-    readonly store?: WorkflowRunStore;
-}
-
-// @public (undocumented)
-export interface WorkflowRunOptions {
-    // (undocumented)
-    readonly signal?: AbortSignal;
-}
-
-// @public (undocumented)
-export interface WorkflowRunResult extends WorkflowRef {
-    // (undocumented)
-    readonly approval?: ApprovalRequest;
-    // (undocumented)
-    readonly error?: SerializedAiError;
-    // (undocumented)
-    readonly events: readonly WorkflowEvent[];
-    // (undocumented)
-    readonly output?: JsonValue;
-    // (undocumented)
-    readonly revision: number;
-    // (undocumented)
-    readonly runId: string;
-    // (undocumented)
-    readonly status: 'awaiting_approval' | 'cancelled' | 'completed' | 'failed';
-}
-
-// @public
-export interface WorkflowRunState extends WorkflowRef {
-    // (undocumented)
-    readonly approval?: WorkflowApprovalCheckpoint;
-    // (undocumented)
-    readonly createdAt: string;
-    // (undocumented)
-    readonly currentValue: JsonValue;
-    // (undocumented)
-    readonly error?: SerializedAiError;
-    // (undocumented)
-    readonly events: readonly WorkflowEvent[];
-    // (undocumented)
-    readonly input: JsonValue;
-    // (undocumented)
-    readonly nextStageIndex: number;
-    // (undocumented)
-    readonly output?: JsonValue;
-    // (undocumented)
-    readonly revision: number;
-    // (undocumented)
-    readonly runId: string;
-    // (undocumented)
-    readonly status: WorkflowRunStatus;
-    // (undocumented)
-    readonly updatedAt: string;
-}
-
-// @public (undocumented)
-export type WorkflowRunStatus = 'awaiting_approval' | 'cancelled' | 'completed' | 'executing' | 'failed' | 'ready';
-
-// @public (undocumented)
-export interface WorkflowRunStore {
-    // (undocumented)
-    get(runId: string): Promise<WorkflowRunState | undefined>;
-    // (undocumented)
-    put(state: WorkflowRunState, options: SaveWorkflowRunOptions): Promise<WorkflowRunState>;
-}
-
-// @public (undocumented)
-export interface WorkflowStageCompletedEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly attempt: number;
-    // (undocumented)
-    readonly stageId: string;
-    // (undocumented)
-    readonly type: 'workflow.stage.completed';
-}
-
-// @public (undocumented)
-export interface WorkflowStageDefinition {
-    // (undocumented)
-    readonly executorId: string;
-    // (undocumented)
-    readonly id: string;
-    // (undocumented)
-    readonly inputSchema: JsonSchema;
-    // (undocumented)
-    readonly kind: WorkflowStageKind;
-    // (undocumented)
-    readonly metadata?: JsonObject;
-    readonly nextStageIds?: readonly string[];
-    // (undocumented)
-    readonly outputSchema: JsonSchema;
-    // (undocumented)
-    readonly retry?: WorkflowRetryPolicy;
-    // (undocumented)
-    readonly timeoutMs: number;
-}
-
-// @public (undocumented)
-export type WorkflowStageKind = 'agent' | 'approval_wait' | 'branch' | 'deterministic' | 'model' | 'policy_gate' | 'structured_model' | 'summary' | 'tool';
-
-// @public (undocumented)
-export type WorkflowStageOutcome = {
-    readonly nextStageId?: string;
-    readonly output: JsonValue;
-    readonly status: 'completed';
-} | {
-    readonly approval: ApprovalRequestInput;
-    readonly output: JsonValue;
-    readonly status: 'awaiting_approval';
-};
-
-// @public (undocumented)
-export interface WorkflowStageRetryingEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly attempt: number;
-    // (undocumented)
-    readonly error: SerializedAiError;
-    // (undocumented)
-    readonly nextAttempt: number;
-    // (undocumented)
-    readonly stageId: string;
-    // (undocumented)
-    readonly type: 'workflow.stage.retrying';
-}
-
-// @public (undocumented)
-export interface WorkflowStageStartedEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly attempt: number;
-    // (undocumented)
-    readonly kind: WorkflowStageKind;
-    // (undocumented)
-    readonly stageId: string;
-    // (undocumented)
-    readonly type: 'workflow.stage.started';
-}
-
-// @public (undocumented)
-export interface WorkflowStartedEvent extends WorkflowEventBase {
-    // (undocumented)
-    readonly type: 'workflow.started';
 }
 
 // (No @packageDocumentation comment for this package)

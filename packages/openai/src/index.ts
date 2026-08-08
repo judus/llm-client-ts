@@ -5,19 +5,10 @@ export {
   OpenAISpeechSynthesisProvider,
   OpenAITranscriptionProvider,
 } from './audio-provider.js';
-export { OpenAIFileAdapter } from './file-adapter.js';
-export { createOpenAIProvider } from './provider.js';
-export {
-  createOpenAIRealtimeClientSecretIssuer,
-  OpenAIRealtimeClientSecretIssuer,
-} from './realtime-client-secret.js';
-export { createOpenAIRealtimeTransport } from './realtime-transport.js';
-export {
-  createOpenAIRealtimeVoiceProvider,
-  OpenAIRealtimeVoiceProvider,
-} from './realtime-provider.js';
+export { createOpenAIProvider, openAI } from './provider.js';
 
 export type { OpenAIConnectionOptions, OpenAIProviderOptions } from './configuration.js';
+export type { OpenAIClientOptions } from './provider.js';
 export type {
   OpenAISpeechSynthesisProviderDependencies,
   OpenAISpeechSynthesisProviderOptions,
@@ -36,28 +27,3 @@ export type {
   OpenAITranscriptionTransportUsage,
 } from './audio-transport.js';
 export type { OpenAITransportCallOptions } from './transport.js';
-export type {
-  OpenAIRealtimeTransport,
-  OpenAIRealtimeTransportConnection,
-  OpenAIRealtimeTransportConnectRequest,
-  OpenAIRealtimeTransportEvent,
-  OpenAIRealtimeTransportOptions,
-} from './realtime-transport.js';
-export type { OpenAIRealtimeVoiceProviderOptions } from './realtime-provider.js';
-export type {
-  OpenAIRealtimeAudioFormat,
-  OpenAIRealtimeClientSecretDependencies,
-  OpenAIRealtimeClientSecretOptions,
-  OpenAIRealtimeClientSecretTransport,
-  OpenAIRealtimeClientSecretTransportRequest,
-  OpenAIRealtimeClientSecretTransportResult,
-  OpenAIRealtimeTranscriptionConfig,
-} from './realtime-client-secret.js';
-export type {
-  OpenAIFileAdapterDependencies,
-  OpenAIFileAdapterOptions,
-  OpenAIFileCreateRequest,
-  OpenAIFileCreateResult,
-  OpenAIFilePurpose,
-  OpenAIFileTransport,
-} from './file-adapter.js';
