@@ -191,6 +191,21 @@ export function validateRealtimeVoiceConfig(
   if (config.instructions?.trim().length === 0) {
     throw invalidOperation('Realtime instructions cannot be empty.');
   }
+  if (config.inputTranscription !== undefined && config.inputTranscription !== false) {
+    if (config.inputTranscription.language?.trim().length === 0) {
+      throw invalidOperation('Realtime transcription language cannot be empty.');
+    }
+    if (config.inputTranscription.prompt?.trim().length === 0) {
+      throw invalidOperation('Realtime transcription prompt cannot be empty.');
+    }
+    if (
+      config.inputTranscription.model !== undefined &&
+      (config.inputTranscription.model.model.trim().length === 0 ||
+        config.inputTranscription.model.provider.trim().length === 0)
+    ) {
+      throw invalidOperation('Realtime transcription model selector cannot be empty.');
+    }
+  }
   if (config.voice?.trim().length === 0) {
     throw invalidOperation('Realtime voice cannot be empty.');
   }

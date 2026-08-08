@@ -7,6 +7,10 @@ export {
 } from './audio-provider.js';
 export { OpenAIFileAdapter } from './file-adapter.js';
 export { createOpenAIProvider } from './provider.js';
+export {
+  createOpenAIRealtimeClientSecretIssuer,
+  OpenAIRealtimeClientSecretIssuer,
+} from './realtime-client-secret.js';
 
 export type { OpenAIConnectionOptions, OpenAIProviderOptions } from './configuration.js';
 export type {
@@ -27,6 +31,15 @@ export type {
   OpenAITranscriptionTransportUsage,
 } from './audio-transport.js';
 export type { OpenAITransportCallOptions } from './transport.js';
+export type {
+  OpenAIRealtimeAudioFormat,
+  OpenAIRealtimeClientSecretDependencies,
+  OpenAIRealtimeClientSecretOptions,
+  OpenAIRealtimeClientSecretTransport,
+  OpenAIRealtimeClientSecretTransportRequest,
+  OpenAIRealtimeClientSecretTransportResult,
+  OpenAIRealtimeTranscriptionConfig,
+} from './realtime-client-secret.js';
 export type {
   OpenAIFileAdapterDependencies,
   OpenAIFileAdapterOptions,

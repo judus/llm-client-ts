@@ -1154,6 +1154,24 @@ export interface RealtimeAudioFormat {
     readonly sampleRateHz?: number;
 }
 
+// @public
+export interface RealtimeClientSecret {
+    // (undocumented)
+    readonly expiresAt: string;
+    // (undocumented)
+    readonly provider: string;
+    // (undocumented)
+    readonly sessionId: string;
+    // (undocumented)
+    readonly value: string;
+}
+
+// @public (undocumented)
+export interface RealtimeClientSecretIssuer {
+    // (undocumented)
+    issue(config: RealtimeVoiceSessionConfig, options?: CallOptions): Promise<RealtimeClientSecret>;
+}
+
 // @public (undocumented)
 export interface RealtimeConversationMessageCommittedEvent extends RealtimeVoiceEventBase {
     // (undocumented)
@@ -1198,6 +1216,16 @@ export interface RealtimeInputTranscriptDeltaEvent extends RealtimeVoiceEventBas
     readonly itemId: string;
     // (undocumented)
     readonly type: 'realtime.input_transcript.delta';
+}
+
+// @public (undocumented)
+export interface RealtimeInputTranscriptionConfig {
+    // (undocumented)
+    readonly language?: string;
+    // (undocumented)
+    readonly model?: ModelSelector;
+    // (undocumented)
+    readonly prompt?: string;
 }
 
 // @public (undocumented)
@@ -1396,6 +1424,8 @@ export interface RealtimeVoiceSessionConfig {
     readonly conversationId?: string;
     // (undocumented)
     readonly inputAudio: RealtimeAudioFormat;
+    // (undocumented)
+    readonly inputTranscription?: false | RealtimeInputTranscriptionConfig;
     // (undocumented)
     readonly instructions?: string;
     // (undocumented)

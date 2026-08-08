@@ -12,7 +12,25 @@ const provider = createOpenAIProvider();
 const client = new AiClient(provider);
 ```
 
-`OPENAI_API_KEY` is used by the underlying SDK when `apiKey` is omitted. Realtime audio remains intentionally separate until its dedicated milestone.
+`OPENAI_API_KEY` is used by the underlying SDK when `apiKey` is omitted.
+
+## Realtime client credentials
+
+`OpenAIRealtimeClientSecretIssuer` is the trusted-server boundary for browser or mobile realtime clients. It validates the provider-neutral realtime configuration, maps it to an OpenAI realtime session, and returns a short-lived opaque credential without exposing the server API key.
+
+```ts
+import { OpenAIRealtimeClientSecretIssuer } from '@maduser/ai-ts-openai';
+
+const issuer = new OpenAIRealtimeClientSecretIssuer({
+  expiresAfterSeconds: 600,
+});
+
+const secret = await issuer.issue(realtimeConfig);
+```
+
+The default lifetime is ten minutes; configured lifetimes must be 10–7,200 seconds. PCM input and output must be mono at 24 kHz. G.711 A-law and µ-law are also supported. Manual commit and server VAD map explicitly, and optional input transcription defaults to `gpt-4o-mini-transcribe`.
+
+The returned `value` must be delivered only to its intended client and must never enter logs, traces, analytics, URLs, or persisted conversation state. Credential issuance is deliberately separate from the forthcoming live WebSocket/WebRTC session transports.
 
 ## Composed voice
 

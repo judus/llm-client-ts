@@ -35,12 +35,19 @@ export type RealtimeTurnDetection =
 export interface RealtimeVoiceSessionConfig {
   readonly conversationId?: string;
   readonly inputAudio: RealtimeAudioFormat;
+  readonly inputTranscription?: false | RealtimeInputTranscriptionConfig;
   readonly instructions?: string;
   readonly metadata?: JsonObject;
   readonly model: ModelSelector;
   readonly outputAudio: RealtimeAudioFormat;
   readonly turnDetection: RealtimeTurnDetection;
   readonly voice?: string;
+}
+
+export interface RealtimeInputTranscriptionConfig {
+  readonly language?: string;
+  readonly model?: ModelSelector;
+  readonly prompt?: string;
 }
 
 export interface RealtimeVoiceCapabilities {
@@ -60,6 +67,18 @@ export type RealtimeVoiceSessionState = 'closed' | 'closing' | 'failed' | 'open'
 export interface RealtimeVoiceProvider {
   capabilities(model: ModelSelector): Promise<RealtimeVoiceCapabilities>;
   connect(config: RealtimeVoiceSessionConfig, options?: CallOptions): Promise<RealtimeVoiceSession>;
+}
+
+/** Short-lived browser/mobile credential. Never include value in logs or traces. */
+export interface RealtimeClientSecret {
+  readonly expiresAt: string;
+  readonly provider: string;
+  readonly sessionId: string;
+  readonly value: string;
+}
+
+export interface RealtimeClientSecretIssuer {
+  issue(config: RealtimeVoiceSessionConfig, options?: CallOptions): Promise<RealtimeClientSecret>;
 }
 
 export interface RealtimeVoiceSession {

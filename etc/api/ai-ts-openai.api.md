@@ -10,6 +10,10 @@ import { ModelProvider } from '@maduser/ai-ts';
 import { ProviderFileAdapter } from '@maduser/ai-ts';
 import { ProviderFileUpload } from '@maduser/ai-ts';
 import { ProviderFileUploadRequest } from '@maduser/ai-ts';
+import { RealtimeClientSecret } from '@maduser/ai-ts';
+import { RealtimeClientSecretIssuer } from '@maduser/ai-ts';
+import { RealtimeTurnDetection } from '@maduser/ai-ts';
+import { RealtimeVoiceSessionConfig } from '@maduser/ai-ts';
 import { SpeechSynthesis as SpeechSynthesis_2 } from '@maduser/ai-ts';
 import { SpeechSynthesisProvider } from '@maduser/ai-ts';
 import { SpeechSynthesisRequest } from '@maduser/ai-ts';
@@ -20,6 +24,9 @@ import { VoiceOperationOptions } from '@maduser/ai-ts';
 
 // @public
 export function createOpenAIProvider(options?: OpenAIProviderOptions): ModelProvider;
+
+// @public (undocumented)
+export function createOpenAIRealtimeClientSecretIssuer(options?: OpenAIRealtimeClientSecretOptions): RealtimeClientSecretIssuer;
 
 // @public
 export function createOpenAISpeechSynthesisProvider(options?: OpenAISpeechSynthesisProviderOptions): SpeechSynthesisProvider;
@@ -102,6 +109,76 @@ export interface OpenAIFileTransport {
 export interface OpenAIProviderOptions extends OpenAIConnectionOptions {
     readonly capabilities?: ModelCapabilities;
     readonly storeResponses?: boolean;
+}
+
+// @public (undocumented)
+export type OpenAIRealtimeAudioFormat = 'audio/pcma' | 'audio/pcm' | 'audio/pcmu';
+
+// @public (undocumented)
+export interface OpenAIRealtimeClientSecretDependencies {
+    // (undocumented)
+    readonly now: () => Date;
+    // (undocumented)
+    readonly transport: OpenAIRealtimeClientSecretTransport;
+}
+
+// @public
+export class OpenAIRealtimeClientSecretIssuer implements RealtimeClientSecretIssuer {
+    constructor(options?: OpenAIRealtimeClientSecretOptions, dependencies?: OpenAIRealtimeClientSecretDependencies);
+    // (undocumented)
+    issue(config: RealtimeVoiceSessionConfig, options?: CallOptions): Promise<RealtimeClientSecret>;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeClientSecretOptions extends OpenAIConnectionOptions {
+    readonly expiresAfterSeconds?: number;
+    readonly transcriptionModel?: string;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeClientSecretTransport {
+    // (undocumented)
+    issue(request: OpenAIRealtimeClientSecretTransportRequest, options: CallOptions): Promise<OpenAIRealtimeClientSecretTransportResult>;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeClientSecretTransportRequest {
+    // (undocumented)
+    readonly expiresAfterSeconds: number;
+    // (undocumented)
+    readonly inputAudioFormat: OpenAIRealtimeAudioFormat;
+    // (undocumented)
+    readonly inputTranscription?: false | OpenAIRealtimeTranscriptionConfig;
+    // (undocumented)
+    readonly instructions?: string;
+    // (undocumented)
+    readonly model: string;
+    // (undocumented)
+    readonly outputAudioFormat: OpenAIRealtimeAudioFormat;
+    // (undocumented)
+    readonly turnDetection: RealtimeTurnDetection;
+    // (undocumented)
+    readonly voice?: string;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeClientSecretTransportResult {
+    // (undocumented)
+    readonly expiresAtEpochSeconds: number;
+    // (undocumented)
+    readonly sessionId: string;
+    // (undocumented)
+    readonly value: string;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeTranscriptionConfig {
+    // (undocumented)
+    readonly language?: string;
+    // (undocumented)
+    readonly model: string;
+    // (undocumented)
+    readonly prompt?: string;
 }
 
 // @public (undocumented)

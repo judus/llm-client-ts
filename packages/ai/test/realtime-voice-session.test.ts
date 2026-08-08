@@ -337,6 +337,19 @@ describe('validateRealtimeVoiceConfig', () => {
       config: { ...config, turnDetection: { threshold: 1.1, type: 'server_vad' as const } },
       name: 'VAD threshold',
     },
+    {
+      capabilities: {},
+      config: { ...config, inputTranscription: { language: ' ' } },
+      name: 'transcription language',
+    },
+    {
+      capabilities: {},
+      config: {
+        ...config,
+        inputTranscription: { model: { model: '', provider: 'openai' } },
+      },
+      name: 'transcription model',
+    },
   ])('rejects unsupported or invalid $name configuration', (fixture) => {
     expect(() => {
       validateRealtimeVoiceConfig(fixture.config, {
