@@ -14,6 +14,10 @@ export { AiError, UnsupportedCapabilityError, serializeAiError } from './error.j
 export { InMemoryConversationStore } from './conversation-store.js';
 export { PromptRegistry } from './prompt-registry.js';
 export { ProviderFileLeaseManager } from './provider-file.js';
+export {
+  GuardedRealtimeVoiceSession,
+  validateRealtimeVoiceConfig,
+} from './realtime-voice-session.js';
 export { SafeDefaultToolPolicy } from './policy.js';
 export { reduceModelStream } from './reduce-stream.js';
 export { ToolRegistry } from './tool-registry.js';
@@ -118,6 +122,38 @@ export type {
   ProviderFileUpload,
   ProviderFileUploadRequest,
 } from './provider-file.js';
+export type { GuardedRealtimeVoiceSessionOptions } from './realtime-voice-session.js';
+export type {
+  RealtimeAudioChunk,
+  RealtimeAudioEncoding,
+  RealtimeAudioFormat,
+  RealtimeConversationMessageCommittedEvent,
+  RealtimeInputAudioStartedEvent,
+  RealtimeInputAudioStoppedEvent,
+  RealtimeInputTranscriptCompletedEvent,
+  RealtimeInputTranscriptDeltaEvent,
+  RealtimeOutputAudioCompletedEvent,
+  RealtimeOutputAudioDeltaEvent,
+  RealtimeOutputTranscriptCompletedEvent,
+  RealtimeOutputTranscriptDeltaEvent,
+  RealtimeResponseInterruptedEvent,
+  RealtimeResponseStartedEvent,
+  RealtimeSessionClosedEvent,
+  RealtimeSessionFailedEvent,
+  RealtimeSessionStartedEvent,
+  RealtimeToolCallProposedEvent,
+  RealtimeToolResultAcceptedEvent,
+  RealtimeTurnDetection,
+  RealtimeUsageUpdatedEvent,
+  RealtimeVoiceCapabilities,
+  RealtimeVoiceEvent,
+  RealtimeVoiceEventBase,
+  RealtimeVoiceProvider,
+  RealtimeVoiceSession,
+  RealtimeVoiceSessionConfig,
+  RealtimeVoiceSessionState,
+  TerminalRealtimeVoiceEvent,
+} from './realtime-voice-types.js';
 export type {
   RunBudgetUpdatedEvent,
   RunCancelledEvent,

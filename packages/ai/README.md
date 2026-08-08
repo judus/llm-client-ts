@@ -140,4 +140,10 @@ Transcription providers may stream partial deltas before one final transcript. V
 
 Terminal results include monotonic transcription, agent, synthesis, optional input/output persistence, and total latency measurements. The transcript- and synthesis-completed events expose their stage latency directly. Inject `monotonicClock` for deterministic tests; wall-clock timestamps remain independent event metadata.
 
+## Realtime voice sessions
+
+`RealtimeVoiceProvider` and `RealtimeVoiceSession` define the full-duplex boundary for live audio. Configuration selects normalized input/output audio formats and manual commit or capability-gated server VAD. Sessions accept audio chunks, text, commits, interruptions, and tool results and expose one ordered event stream with an explicit terminal close or failure.
+
+Wrap provider sessions in `GuardedRealtimeVoiceSession` to validate configuration, audio chunk bounds, operation capabilities, event ownership and sequence, start/terminal ordering, one-consumer semantics, and idempotent close. Output-audio events necessarily contain playback bytes; trace exporters must redact that media field by default. Tool events are proposals only—the higher runtime remains responsible for policy, approval, execution, and canonical transcript persistence.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.

@@ -588,6 +588,39 @@ export interface DocumentPart {
 // @public (undocumented)
 export type FinishReason = 'cancelled' | 'content_filter' | 'error' | 'length' | 'stop' | 'tool_calls' | 'unknown';
 
+// @public
+export class GuardedRealtimeVoiceSession implements RealtimeVoiceSession {
+    constructor(options: GuardedRealtimeVoiceSessionOptions);
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    commitInput(): Promise<void>;
+    // (undocumented)
+    events(): AsyncIterable<RealtimeVoiceEvent>;
+    // (undocumented)
+    get id(): string;
+    // (undocumented)
+    interrupt(): Promise<void>;
+    // (undocumented)
+    sendAudio(chunk: RealtimeAudioChunk): Promise<void>;
+    // (undocumented)
+    sendText(text: string): Promise<void>;
+    // (undocumented)
+    sendToolResult(result: ToolResultPart): Promise<void>;
+    // (undocumented)
+    get state(): RealtimeVoiceSessionState;
+}
+
+// @public (undocumented)
+export interface GuardedRealtimeVoiceSessionOptions {
+    // (undocumented)
+    readonly capabilities: RealtimeVoiceCapabilities;
+    // (undocumented)
+    readonly config: RealtimeVoiceSessionConfig;
+    // (undocumented)
+    readonly session: RealtimeVoiceSession;
+}
+
 // @public (undocumented)
 export function hashApprovalAction(action: ApprovalAction): Promise<string>;
 
@@ -1098,6 +1131,288 @@ export interface PutArtifact {
     readonly source: ArtifactSource;
 }
 
+// @public (undocumented)
+export interface RealtimeAudioChunk {
+    // (undocumented)
+    readonly bytes: Uint8Array;
+    // (undocumented)
+    readonly durationMs?: number;
+}
+
+// @public (undocumented)
+export type RealtimeAudioEncoding = 'aac' | 'g711_alaw' | 'g711_ulaw' | 'mp3' | 'opus' | 'pcm16';
+
+// @public (undocumented)
+export interface RealtimeAudioFormat {
+    // (undocumented)
+    readonly channels?: number;
+    // (undocumented)
+    readonly encoding: RealtimeAudioEncoding;
+    // (undocumented)
+    readonly mimeType: string;
+    // (undocumented)
+    readonly sampleRateHz?: number;
+}
+
+// @public (undocumented)
+export interface RealtimeConversationMessageCommittedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly message: ConversationMessage;
+    // (undocumented)
+    readonly type: 'realtime.conversation.message_committed';
+}
+
+// @public (undocumented)
+export interface RealtimeInputAudioStartedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly itemId: string;
+    // (undocumented)
+    readonly type: 'realtime.input_audio.started';
+}
+
+// @public (undocumented)
+export interface RealtimeInputAudioStoppedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly audioDurationMs?: number;
+    // (undocumented)
+    readonly itemId: string;
+    // (undocumented)
+    readonly type: 'realtime.input_audio.stopped';
+}
+
+// @public (undocumented)
+export interface RealtimeInputTranscriptCompletedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly itemId: string;
+    // (undocumented)
+    readonly transcript: string;
+    // (undocumented)
+    readonly type: 'realtime.input_transcript.completed';
+}
+
+// @public (undocumented)
+export interface RealtimeInputTranscriptDeltaEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly delta: string;
+    // (undocumented)
+    readonly itemId: string;
+    // (undocumented)
+    readonly type: 'realtime.input_transcript.delta';
+}
+
+// @public (undocumented)
+export interface RealtimeOutputAudioCompletedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly audioDurationMs?: number;
+    // (undocumented)
+    readonly responseId: string;
+    // (undocumented)
+    readonly type: 'realtime.output_audio.completed';
+}
+
+// @public (undocumented)
+export interface RealtimeOutputAudioDeltaEvent extends RealtimeVoiceEventBase {
+    readonly chunk: RealtimeAudioChunk;
+    // (undocumented)
+    readonly responseId: string;
+    // (undocumented)
+    readonly type: 'realtime.output_audio.delta';
+}
+
+// @public (undocumented)
+export interface RealtimeOutputTranscriptCompletedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly responseId: string;
+    // (undocumented)
+    readonly transcript: string;
+    // (undocumented)
+    readonly type: 'realtime.output_transcript.completed';
+}
+
+// @public (undocumented)
+export interface RealtimeOutputTranscriptDeltaEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly delta: string;
+    // (undocumented)
+    readonly responseId: string;
+    // (undocumented)
+    readonly type: 'realtime.output_transcript.delta';
+}
+
+// @public (undocumented)
+export interface RealtimeResponseInterruptedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly deliveredAudioMs?: number;
+    // (undocumented)
+    readonly deliveredTranscript?: string;
+    // (undocumented)
+    readonly responseId: string;
+    // (undocumented)
+    readonly type: 'realtime.response.interrupted';
+}
+
+// @public (undocumented)
+export interface RealtimeResponseStartedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly responseId: string;
+    // (undocumented)
+    readonly type: 'realtime.response.started';
+}
+
+// @public (undocumented)
+export interface RealtimeSessionClosedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly reason: 'cancelled' | 'client_closed' | 'provider_closed' | 'timeout';
+    // (undocumented)
+    readonly type: 'realtime.session.closed';
+}
+
+// @public (undocumented)
+export interface RealtimeSessionFailedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly recoverable: boolean;
+    // (undocumented)
+    readonly type: 'realtime.session.failed';
+}
+
+// @public (undocumented)
+export interface RealtimeSessionStartedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly config: RealtimeVoiceSessionConfig;
+    // (undocumented)
+    readonly type: 'realtime.session.started';
+}
+
+// @public (undocumented)
+export interface RealtimeToolCallProposedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly call: ToolCall;
+    // (undocumented)
+    readonly responseId: string;
+    // (undocumented)
+    readonly type: 'realtime.tool_call.proposed';
+}
+
+// @public (undocumented)
+export interface RealtimeToolResultAcceptedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly callId: string;
+    // (undocumented)
+    readonly type: 'realtime.tool_result.accepted';
+}
+
+// @public (undocumented)
+export type RealtimeTurnDetection = {
+    readonly type: 'manual';
+} | {
+    readonly createResponse?: boolean;
+    readonly interruptResponse?: boolean;
+    readonly prefixPaddingMs?: number;
+    readonly silenceDurationMs?: number;
+    readonly threshold?: number;
+    readonly type: 'server_vad';
+};
+
+// @public (undocumented)
+export interface RealtimeUsageUpdatedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly type: 'realtime.usage.updated';
+    // (undocumented)
+    readonly usage: Usage;
+}
+
+// @public (undocumented)
+export interface RealtimeVoiceCapabilities {
+    // (undocumented)
+    readonly clientSecrets: boolean;
+    // (undocumented)
+    readonly inputAudioEncodings: readonly RealtimeAudioEncoding[];
+    // (undocumented)
+    readonly interruption: boolean;
+    // (undocumented)
+    readonly manualCommit: boolean;
+    // (undocumented)
+    readonly maxAudioChunkBytes?: number;
+    // (undocumented)
+    readonly outputAudioEncodings: readonly RealtimeAudioEncoding[];
+    // (undocumented)
+    readonly serverVad: boolean;
+    // (undocumented)
+    readonly textInput: boolean;
+    // (undocumented)
+    readonly toolCalls: boolean;
+}
+
+// @public (undocumented)
+export type RealtimeVoiceEvent = RealtimeConversationMessageCommittedEvent | RealtimeInputAudioStartedEvent | RealtimeInputAudioStoppedEvent | RealtimeInputTranscriptCompletedEvent | RealtimeInputTranscriptDeltaEvent | RealtimeOutputAudioCompletedEvent | RealtimeOutputAudioDeltaEvent | RealtimeOutputTranscriptCompletedEvent | RealtimeOutputTranscriptDeltaEvent | RealtimeResponseInterruptedEvent | RealtimeResponseStartedEvent | RealtimeSessionClosedEvent | RealtimeSessionFailedEvent | RealtimeSessionStartedEvent | RealtimeToolCallProposedEvent | RealtimeToolResultAcceptedEvent | RealtimeUsageUpdatedEvent;
+
+// @public (undocumented)
+export interface RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly eventId: string;
+    // (undocumented)
+    readonly occurredAt: string;
+    // (undocumented)
+    readonly sequence: number;
+    // (undocumented)
+    readonly sessionId: string;
+}
+
+// @public (undocumented)
+export interface RealtimeVoiceProvider {
+    // (undocumented)
+    capabilities(model: ModelSelector): Promise<RealtimeVoiceCapabilities>;
+    // (undocumented)
+    connect(config: RealtimeVoiceSessionConfig, options?: CallOptions): Promise<RealtimeVoiceSession>;
+}
+
+// @public (undocumented)
+export interface RealtimeVoiceSession {
+    // (undocumented)
+    close(): Promise<void>;
+    // (undocumented)
+    commitInput(): Promise<void>;
+    // (undocumented)
+    events(): AsyncIterable<RealtimeVoiceEvent>;
+    // (undocumented)
+    readonly id: string;
+    // (undocumented)
+    interrupt(): Promise<void>;
+    // (undocumented)
+    sendAudio(chunk: RealtimeAudioChunk): Promise<void>;
+    // (undocumented)
+    sendText(text: string): Promise<void>;
+    // (undocumented)
+    sendToolResult(result: ToolResultPart): Promise<void>;
+    // (undocumented)
+    readonly state: RealtimeVoiceSessionState;
+}
+
+// @public (undocumented)
+export interface RealtimeVoiceSessionConfig {
+    // (undocumented)
+    readonly conversationId?: string;
+    // (undocumented)
+    readonly inputAudio: RealtimeAudioFormat;
+    // (undocumented)
+    readonly instructions?: string;
+    // (undocumented)
+    readonly metadata?: JsonObject;
+    // (undocumented)
+    readonly model: ModelSelector;
+    // (undocumented)
+    readonly outputAudio: RealtimeAudioFormat;
+    // (undocumented)
+    readonly turnDetection: RealtimeTurnDetection;
+    // (undocumented)
+    readonly voice?: string;
+}
+
+// @public (undocumented)
+export type RealtimeVoiceSessionState = 'closed' | 'closing' | 'failed' | 'open';
+
 // @public
 export interface RecordApprovalDecision {
     // (undocumented)
@@ -1445,6 +1760,9 @@ export interface SummaryLineage {
 export type TerminalModelEvent = ModelResponseCompletedEvent | ModelResponseFailedEvent;
 
 // @public (undocumented)
+export type TerminalRealtimeVoiceEvent = RealtimeSessionClosedEvent | RealtimeSessionFailedEvent;
+
+// @public (undocumented)
 export type TerminalRunEvent = RunCancelledEvent | RunCompletedEvent | RunFailedEvent | RunLimitExceededEvent;
 
 // @public (undocumented)
@@ -1678,6 +1996,9 @@ export interface Usage {
 
 // @public (undocumented)
 export function validateModelRequest(request: ModelRequest, capabilities: ModelCapabilities, providerId: string, streaming: boolean): void;
+
+// @public (undocumented)
+export function validateRealtimeVoiceConfig(config: RealtimeVoiceSessionConfig, capabilities: RealtimeVoiceCapabilities): void;
 
 // @public (undocumented)
 export interface VoiceAgentEvent extends VoiceTurnEventBase {
