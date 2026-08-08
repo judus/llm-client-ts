@@ -26,6 +26,10 @@
     "build": "tsc --project tsconfig.build.json",
     "clean": "tsc --build tsconfig.build.json --clean"
   },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "3.1105.0",
+    "@maduser/ai-ts": "workspace:^"
+  },
   "publishConfig": {
     "access": "public",
     "provenance": true

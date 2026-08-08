@@ -4,6 +4,44 @@
 
 ```ts
 
+import type { ModelCapabilities } from '@maduser/ai-ts';
+import { ModelProvider } from '@maduser/ai-ts';
+
+// @public (undocumented)
+export interface BedrockCredentials {
+    // (undocumented)
+    readonly accessKeyId: string;
+    // (undocumented)
+    readonly secretAccessKey: string;
+    // (undocumented)
+    readonly sessionToken?: string;
+}
+
+// @public
+export interface BedrockModelProvider extends ModelProvider {
+    // (undocumented)
+    close(): void;
+}
+
+// @public
+export interface BedrockProviderOptions {
+    // (undocumented)
+    readonly capabilities?: ModelCapabilities;
+    // (undocumented)
+    readonly credentials?: BedrockCredentials;
+    // (undocumented)
+    readonly endpoint?: string;
+    // (undocumented)
+    readonly maxAttempts?: number;
+    readonly region?: string;
+}
+
+// @public
+export function createBedrockProvider(options?: BedrockProviderOptions): BedrockModelProvider;
+
+// @public (undocumented)
+export function defaultBedrockModelCapabilities(): ModelCapabilities;
+
 // (No @packageDocumentation comment for this package)
 
 ```
