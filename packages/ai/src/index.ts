@@ -139,6 +139,8 @@ export type {
   RealtimeOutputAudioDeltaEvent,
   RealtimeOutputTranscriptCompletedEvent,
   RealtimeOutputTranscriptDeltaEvent,
+  RealtimeOperationFailedEvent,
+  RealtimeResponseFailedEvent,
   RealtimeResponseInterruptedEvent,
   RealtimeResponseStartedEvent,
   RealtimeSessionClosedEvent,

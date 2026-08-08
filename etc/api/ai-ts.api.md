@@ -1229,6 +1229,18 @@ export interface RealtimeInputTranscriptionConfig {
 }
 
 // @public (undocumented)
+export interface RealtimeOperationFailedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly operationId?: string;
+    // (undocumented)
+    readonly recoverable: boolean;
+    // (undocumented)
+    readonly type: 'realtime.operation.failed';
+}
+
+// @public (undocumented)
 export interface RealtimeOutputAudioCompletedEvent extends RealtimeVoiceEventBase {
     // (undocumented)
     readonly audioDurationMs?: number;
@@ -1265,6 +1277,18 @@ export interface RealtimeOutputTranscriptDeltaEvent extends RealtimeVoiceEventBa
     readonly responseId: string;
     // (undocumented)
     readonly type: 'realtime.output_transcript.delta';
+}
+
+// @public (undocumented)
+export interface RealtimeResponseFailedEvent extends RealtimeVoiceEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly recoverable: boolean;
+    // (undocumented)
+    readonly responseId: string;
+    // (undocumented)
+    readonly type: 'realtime.response.failed';
 }
 
 // @public (undocumented)
@@ -1374,7 +1398,7 @@ export interface RealtimeVoiceCapabilities {
 }
 
 // @public (undocumented)
-export type RealtimeVoiceEvent = RealtimeConversationMessageCommittedEvent | RealtimeInputAudioStartedEvent | RealtimeInputAudioStoppedEvent | RealtimeInputTranscriptCompletedEvent | RealtimeInputTranscriptDeltaEvent | RealtimeOutputAudioCompletedEvent | RealtimeOutputAudioDeltaEvent | RealtimeOutputTranscriptCompletedEvent | RealtimeOutputTranscriptDeltaEvent | RealtimeResponseInterruptedEvent | RealtimeResponseStartedEvent | RealtimeSessionClosedEvent | RealtimeSessionFailedEvent | RealtimeSessionStartedEvent | RealtimeToolCallProposedEvent | RealtimeToolResultAcceptedEvent | RealtimeUsageUpdatedEvent;
+export type RealtimeVoiceEvent = RealtimeConversationMessageCommittedEvent | RealtimeInputAudioStartedEvent | RealtimeInputAudioStoppedEvent | RealtimeInputTranscriptCompletedEvent | RealtimeInputTranscriptDeltaEvent | RealtimeOutputAudioCompletedEvent | RealtimeOutputAudioDeltaEvent | RealtimeOutputTranscriptCompletedEvent | RealtimeOutputTranscriptDeltaEvent | RealtimeOperationFailedEvent | RealtimeResponseInterruptedEvent | RealtimeResponseFailedEvent | RealtimeResponseStartedEvent | RealtimeSessionClosedEvent | RealtimeSessionFailedEvent | RealtimeSessionStartedEvent | RealtimeToolCallProposedEvent | RealtimeToolResultAcceptedEvent | RealtimeUsageUpdatedEvent;
 
 // @public (undocumented)
 export interface RealtimeVoiceEventBase {

@@ -186,6 +186,20 @@ export interface RealtimeUsageUpdatedEvent extends RealtimeVoiceEventBase {
   readonly usage: Usage;
 }
 
+export interface RealtimeOperationFailedEvent extends RealtimeVoiceEventBase {
+  readonly error: SerializedAiError;
+  readonly operationId?: string;
+  readonly recoverable: boolean;
+  readonly type: 'realtime.operation.failed';
+}
+
+export interface RealtimeResponseFailedEvent extends RealtimeVoiceEventBase {
+  readonly error: SerializedAiError;
+  readonly recoverable: boolean;
+  readonly responseId: string;
+  readonly type: 'realtime.response.failed';
+}
+
 export interface RealtimeSessionFailedEvent extends RealtimeVoiceEventBase {
   readonly error: SerializedAiError;
   readonly recoverable: boolean;
@@ -209,7 +223,9 @@ export type RealtimeVoiceEvent =
   | RealtimeOutputAudioDeltaEvent
   | RealtimeOutputTranscriptCompletedEvent
   | RealtimeOutputTranscriptDeltaEvent
+  | RealtimeOperationFailedEvent
   | RealtimeResponseInterruptedEvent
+  | RealtimeResponseFailedEvent
   | RealtimeResponseStartedEvent
   | RealtimeSessionClosedEvent
   | RealtimeSessionFailedEvent

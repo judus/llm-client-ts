@@ -15,6 +15,9 @@ import { ProviderFileUploadRequest } from '@maduser/ai-ts';
 import { RealtimeClientSecret } from '@maduser/ai-ts';
 import { RealtimeClientSecretIssuer } from '@maduser/ai-ts';
 import { RealtimeTurnDetection } from '@maduser/ai-ts';
+import { RealtimeVoiceCapabilities } from '@maduser/ai-ts';
+import { RealtimeVoiceProvider } from '@maduser/ai-ts';
+import { RealtimeVoiceSession } from '@maduser/ai-ts';
 import { RealtimeVoiceSessionConfig } from '@maduser/ai-ts';
 import { SpeechSynthesis as SpeechSynthesis_2 } from '@maduser/ai-ts';
 import { SpeechSynthesisProvider } from '@maduser/ai-ts';
@@ -32,6 +35,9 @@ export function createOpenAIRealtimeClientSecretIssuer(options?: OpenAIRealtimeC
 
 // @public (undocumented)
 export function createOpenAIRealtimeTransport(options: OpenAIRealtimeTransportOptions): OpenAIRealtimeTransport;
+
+// @public (undocumented)
+export function createOpenAIRealtimeVoiceProvider(options: OpenAIRealtimeVoiceProviderOptions): RealtimeVoiceProvider;
 
 // @public
 export function createOpenAISpeechSynthesisProvider(options?: OpenAISpeechSynthesisProviderOptions): SpeechSynthesisProvider;
@@ -226,6 +232,29 @@ export interface OpenAIRealtimeTransportOptions {
     readonly baseUrl?: string;
     readonly clientSecret: string;
     readonly maxPendingEvents?: number;
+}
+
+// @public (undocumented)
+export class OpenAIRealtimeVoiceProvider implements RealtimeVoiceProvider {
+    constructor(options: OpenAIRealtimeVoiceProviderOptions);
+    // (undocumented)
+    capabilities(model: RealtimeVoiceSessionConfig['model']): Promise<RealtimeVoiceCapabilities>;
+    // (undocumented)
+    connect(config: RealtimeVoiceSessionConfig, options?: CallOptions): Promise<RealtimeVoiceSession>;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeVoiceProviderOptions {
+    // (undocumented)
+    readonly handshakeTimeoutMs?: number;
+    // (undocumented)
+    readonly idGenerator?: () => string;
+    // (undocumented)
+    readonly now?: () => Date;
+    // (undocumented)
+    readonly transcriptionModel?: string;
+    // (undocumented)
+    readonly transport: OpenAIRealtimeTransport;
 }
 
 // @public (undocumented)

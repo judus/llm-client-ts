@@ -12,6 +12,10 @@ export {
   OpenAIRealtimeClientSecretIssuer,
 } from './realtime-client-secret.js';
 export { createOpenAIRealtimeTransport } from './realtime-transport.js';
+export {
+  createOpenAIRealtimeVoiceProvider,
+  OpenAIRealtimeVoiceProvider,
+} from './realtime-provider.js';
 
 export type { OpenAIConnectionOptions, OpenAIProviderOptions } from './configuration.js';
 export type {
@@ -39,6 +43,7 @@ export type {
   OpenAIRealtimeTransportEvent,
   OpenAIRealtimeTransportOptions,
 } from './realtime-transport.js';
+export type { OpenAIRealtimeVoiceProviderOptions } from './realtime-provider.js';
 export type {
   OpenAIRealtimeAudioFormat,
   OpenAIRealtimeClientSecretDependencies,

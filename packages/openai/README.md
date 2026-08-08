@@ -45,6 +45,23 @@ const transport = createOpenAIRealtimeTransport({
 
 This wire transport intentionally exposes only JSON messages and normalized lifecycle events. Application code should use the forthcoming `RealtimeVoiceProvider` adapter instead of sending provider events directly.
 
+`OpenAIRealtimeVoiceProvider` now supplies that normalized session adapter. Construct it with the ephemeral transport, then connect with the shared `RealtimeVoiceSessionConfig`:
+
+```ts
+import {
+  createOpenAIRealtimeTransport,
+  createOpenAIRealtimeVoiceProvider,
+} from '@maduser/ai-ts-openai';
+
+const realtime = createOpenAIRealtimeVoiceProvider({
+  transport: createOpenAIRealtimeTransport({ clientSecret: secret.value }),
+});
+
+const session = await realtime.connect(realtimeConfig);
+```
+
+The adapter performs and bounds the `session.created`/`session.update` handshake, normalizes audio and transcript streaming, commits final user and assistant transcripts as canonical messages, proposes tool calls without executing them, reports usage and recoverable operation failures, and produces explicit terminal close/failure events. Manual commit sends both the audio-buffer commit and response request; server VAD follows its configured automatic-response behavior.
+
 ## Composed voice
 
 The package implements the core `TranscriptionProvider` and `SpeechSynthesisProvider` contracts. They can be used together or mixed independently with another provider.

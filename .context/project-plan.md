@@ -10,7 +10,7 @@ Implementation status on 2026-08-08:
 - Milestones 0 through 5 are complete in the local Git history.
 - Milestone 6 is in progress. Artifact storage, provider-file leases, OpenAI file and multimodal mapping, the Bedrock Converse/ConverseStream runtime, discovery normalization, and the model capability registry are complete. The packaged AWS control-plane discovery transport remains.
 - Milestone 7 is complete. Provider-neutral speech contracts, the composed runtime, transcript events, canonical conversation persistence, independent audio retention, OpenAI transcription/synthesis adapters, monotonic stage telemetry, and reusable conformance fixtures are implemented and tested.
-- Milestone 8 is in progress. Provider-neutral realtime capabilities, configuration, session operations, normalized events, guarded lifecycle validation, OpenAI short-lived client-secret issuance, and a bounded ephemeral WebSocket transport are implemented. Provider event normalization and runtime orchestration remain.
+- Milestone 8 is in progress. Provider-neutral realtime capabilities, configuration, session operations, normalized events, guarded lifecycle validation, OpenAI short-lived client-secret issuance, a bounded ephemeral WebSocket transport, and the first normalized OpenAI realtime provider are implemented. Runtime orchestration, persistence/tool integration, and reconnect policy remain.
 - Milestone 9 has not started.
 
 ## 1. Outcome

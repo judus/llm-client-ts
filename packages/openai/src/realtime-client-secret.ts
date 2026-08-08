@@ -208,7 +208,7 @@ export function createOpenAIRealtimeClientSecretIssuer(
   return new OpenAIRealtimeClientSecretIssuer(options);
 }
 
-function mapTranscription(
+export function mapTranscription(
   config: RealtimeVoiceSessionConfig,
   defaultModel: string,
 ): false | OpenAIRealtimeTranscriptionConfig | undefined {
@@ -233,7 +233,7 @@ function mapTranscription(
   };
 }
 
-function mapAudioFormat(
+export function mapAudioFormat(
   channels: number | undefined,
   encoding: RealtimeAudioEncoding,
   sampleRateHz: number | undefined,
@@ -265,11 +265,13 @@ function mapAudioFormat(
   });
 }
 
-function sdkAudioFormat(type: OpenAIRealtimeAudioFormat): RealtimeAudioFormats {
+export function sdkAudioFormat(type: OpenAIRealtimeAudioFormat): RealtimeAudioFormats {
   return type === 'audio/pcm' ? { rate: 24_000, type } : { type };
 }
 
-function mapTurnDetection(turn: RealtimeTurnDetection): RealtimeAudioInputTurnDetection | null {
+export function mapTurnDetection(
+  turn: RealtimeTurnDetection,
+): RealtimeAudioInputTurnDetection | null {
   return turn.type === 'manual'
     ? null
     : {
