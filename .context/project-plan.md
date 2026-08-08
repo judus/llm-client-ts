@@ -8,7 +8,7 @@ Primary language: strict TypeScript
 Implementation status on 2026-08-08:
 
 - Milestones 0 through 5 are complete in the local Git history.
-- Milestone 6 is in progress. Artifact storage, provider-file leases, OpenAI file and multimodal mapping, and the Bedrock Converse/ConverseStream runtime slice are complete. Bedrock discovery and its tested model capability registry remain.
+- Milestone 6 is in progress. Artifact storage, provider-file leases, OpenAI file and multimodal mapping, the Bedrock Converse/ConverseStream runtime, discovery normalization, and the model capability registry are complete. The packaged AWS control-plane discovery transport remains.
 - Milestones 7 through 9 have not started.
 
 ## 1. Outcome

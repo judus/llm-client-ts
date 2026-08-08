@@ -1,5 +1,7 @@
 import type { ModelCapabilities } from '@maduser/ai-ts';
 
+import type { BedrockCapabilityResolver } from './capability-registry.js';
+
 export interface BedrockCredentials {
   readonly accessKeyId: string;
   readonly secretAccessKey: string;
@@ -9,6 +11,7 @@ export interface BedrockCredentials {
 /** Configuration accepted without exposing AWS SDK objects. */
 export interface BedrockProviderOptions {
   readonly capabilities?: ModelCapabilities;
+  readonly capabilityResolver?: BedrockCapabilityResolver;
   readonly credentials?: BedrockCredentials;
   readonly endpoint?: string;
   readonly maxAttempts?: number;

@@ -106,6 +106,49 @@ describe('BedrockProvider', () => {
     expect(transport.closed).toBe(true);
   });
 
+  it('resolves model-specific capabilities and rejects ambiguous capability configuration', async () => {
+    const transport = new FixtureTransport();
+    const provider = new BedrockProvider(
+      {
+        capabilityResolver: {
+          resolve: () =>
+            Promise.resolve({
+              input: { audio: false, documents: false, images: false, text: true },
+              output: { audio: false, structured: false, text: true },
+              realtime: false,
+              speechSynthesis: false,
+              streaming: false,
+              tools: { calls: false, parallelCalls: false, strictSchemas: false },
+              transcription: false,
+            }),
+        },
+      },
+      { createId: () => 'id', now: () => new Date(0), transport },
+    );
+    await expect(provider.capabilities(request.model)).resolves.toMatchObject({
+      input: { documents: false },
+      streaming: false,
+    });
+
+    const unknown = new BedrockProvider(
+      { capabilityResolver: { resolve: () => Promise.resolve(undefined) } },
+      { createId: () => 'id', now: () => new Date(0), transport },
+    );
+    await expect(unknown.capabilities(request.model)).rejects.toMatchObject({
+      code: 'bedrock_capabilities_unknown',
+    });
+    expect(
+      () =>
+        new BedrockProvider(
+          {
+            capabilities: fullCapabilities(),
+            capabilityResolver: { resolve: () => Promise.resolve(fullCapabilities()) },
+          },
+          { createId: () => 'id', now: () => new Date(0), transport },
+        ),
+    ).toThrow(expect.objectContaining({ code: 'bedrock_capability_configuration_conflict' }));
+  });
+
   it('rejects unsupported idempotency keys before transport I/O', async () => {
     const transport = new FixtureTransport();
     const client = new AiClient(fixtureProvider(transport));
@@ -204,4 +247,16 @@ async function* iterate(
     await Promise.resolve();
     yield event;
   }
+}
+
+function fullCapabilities(): Awaited<ReturnType<BedrockProvider['capabilities']>> {
+  return {
+    input: { audio: false, documents: true, images: true, text: true },
+    output: { audio: false, structured: true, text: true },
+    realtime: false,
+    speechSynthesis: false,
+    streaming: true,
+    tools: { calls: true, parallelCalls: true, strictSchemas: true },
+    transcription: false,
+  };
 }

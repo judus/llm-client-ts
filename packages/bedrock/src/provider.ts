@@ -54,6 +54,7 @@ export interface BedrockModelProvider extends ModelProvider {
 export class BedrockProvider implements BedrockModelProvider {
   public readonly id = 'bedrock';
   readonly #capabilities: ModelCapabilities;
+  readonly #capabilityResolver: BedrockProviderOptions['capabilityResolver'];
   readonly #createId: () => string;
   readonly #now: () => Date;
   readonly #transport: BedrockRuntimeTransport;
@@ -62,15 +63,33 @@ export class BedrockProvider implements BedrockModelProvider {
     options: BedrockProviderOptions = {},
     dependencies: BedrockProviderDependencies = defaultDependencies(options),
   ) {
+    if (options.capabilities !== undefined && options.capabilityResolver !== undefined) {
+      throw new AiError(
+        'invalid_request',
+        'Configure either static Bedrock capabilities or a capability resolver, not both.',
+        { code: 'bedrock_capability_configuration_conflict' },
+      );
+    }
     this.#capabilities = options.capabilities ?? defaultBedrockModelCapabilities();
+    this.#capabilityResolver = options.capabilityResolver;
     this.#createId = dependencies.createId;
     this.#now = dependencies.now;
     this.#transport = dependencies.transport;
   }
 
-  public capabilities(_model: ModelSelector): Promise<ModelCapabilities> {
-    void _model;
-    return Promise.resolve(this.#capabilities);
+  public async capabilities(model: ModelSelector): Promise<ModelCapabilities> {
+    const resolved = await this.#capabilityResolver?.resolve(model);
+    if (this.#capabilityResolver !== undefined && resolved === undefined) {
+      throw new AiError(
+        'invalid_request',
+        'No Bedrock capabilities are registered for this model.',
+        {
+          code: 'bedrock_capabilities_unknown',
+          details: { model: model.model },
+        },
+      );
+    }
+    return resolved ?? this.#capabilities;
   }
 
   public close(): void {

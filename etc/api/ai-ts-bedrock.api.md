@@ -4,8 +4,40 @@
 
 ```ts
 
-import type { ModelCapabilities } from '@maduser/ai-ts';
+import { CallOptions } from '@maduser/ai-ts';
+import { ModelCapabilities } from '@maduser/ai-ts';
 import { ModelProvider } from '@maduser/ai-ts';
+import { ModelSelector } from '@maduser/ai-ts';
+
+// @public (undocumented)
+export interface BedrockCapabilityEntry {
+    // (undocumented)
+    readonly capabilities: ModelCapabilities;
+    // (undocumented)
+    readonly modelId: string;
+}
+
+// @public
+export class BedrockCapabilityRegistry implements BedrockCapabilityResolver {
+    constructor(options: BedrockCapabilityRegistryOptions);
+    // (undocumented)
+    resolve(model: ModelSelector): Promise<ModelCapabilities | undefined>;
+}
+
+// @public (undocumented)
+export interface BedrockCapabilityRegistryOptions {
+    // (undocumented)
+    readonly catalog?: BedrockDiscoveryCatalog;
+    // (undocumented)
+    readonly entries: readonly BedrockCapabilityEntry[];
+    readonly fallback?: ModelCapabilities;
+}
+
+// @public (undocumented)
+export interface BedrockCapabilityResolver {
+    // (undocumented)
+    resolve(model: ModelSelector): Promise<ModelCapabilities | undefined>;
+}
 
 // @public (undocumented)
 export interface BedrockCredentials {
@@ -15,6 +47,129 @@ export interface BedrockCredentials {
     readonly secretAccessKey: string;
     // (undocumented)
     readonly sessionToken?: string;
+}
+
+// @public (undocumented)
+export interface BedrockDiscoveryCatalog {
+    // (undocumented)
+    readonly inferenceProfiles: readonly BedrockInferenceProfile[];
+    // (undocumented)
+    readonly models: readonly BedrockFoundationModel[];
+}
+
+// @public (undocumented)
+export class BedrockDiscoveryClient {
+    constructor(transport: BedrockDiscoveryTransport);
+    // (undocumented)
+    close(): void;
+    // (undocumented)
+    discover(discoveryOptions?: BedrockDiscoveryOptions, callOptions?: CallOptions): Promise<BedrockDiscoveryCatalog>;
+}
+
+// @public (undocumented)
+export interface BedrockDiscoveryOptions {
+    // (undocumented)
+    readonly maxProfilePages?: number;
+    // (undocumented)
+    readonly profilePageSize?: number;
+    readonly profileType?: BedrockInferenceProfileType | 'all';
+}
+
+// @public
+export interface BedrockDiscoveryTransport {
+    // (undocumented)
+    close(): void;
+    // (undocumented)
+    listFoundationModels(request: BedrockListFoundationModelsRequest, options: CallOptions): Promise<unknown>;
+    // (undocumented)
+    listInferenceProfiles(request: BedrockListInferenceProfilesRequest, options: CallOptions): Promise<unknown>;
+}
+
+// @public (undocumented)
+export interface BedrockFoundationModel {
+    // (undocumented)
+    readonly customizationsSupported: readonly string[];
+    // (undocumented)
+    readonly inferenceTypesSupported: readonly string[];
+    // (undocumented)
+    readonly inputModalities: readonly string[];
+    // (undocumented)
+    readonly lifecycle?: BedrockFoundationModelLifecycle;
+    // (undocumented)
+    readonly modelArn: string;
+    // (undocumented)
+    readonly modelId: string;
+    // (undocumented)
+    readonly modelName?: string;
+    // (undocumented)
+    readonly outputModalities: readonly string[];
+    // (undocumented)
+    readonly providerName?: string;
+    // (undocumented)
+    readonly recommendedInvocationIds: readonly string[];
+    // (undocumented)
+    readonly responseStreamingSupported: boolean;
+}
+
+// @public (undocumented)
+export interface BedrockFoundationModelLifecycle {
+    // (undocumented)
+    readonly endOfLifeAt?: string;
+    // (undocumented)
+    readonly legacyAt?: string;
+    // (undocumented)
+    readonly publicExtendedAccessAt?: string;
+    // (undocumented)
+    readonly startOfLifeAt?: string;
+    // (undocumented)
+    readonly status: string;
+}
+
+// @public (undocumented)
+export interface BedrockInferenceProfile {
+    // (undocumented)
+    readonly createdAt?: string;
+    // (undocumented)
+    readonly description?: string;
+    // (undocumented)
+    readonly inferenceProfileArn: string;
+    // (undocumented)
+    readonly inferenceProfileId: string;
+    // (undocumented)
+    readonly inferenceProfileName: string;
+    // (undocumented)
+    readonly modelIds: readonly string[];
+    // (undocumented)
+    readonly status: 'ACTIVE';
+    // (undocumented)
+    readonly type: BedrockInferenceProfileType;
+    // (undocumented)
+    readonly updatedAt?: string;
+}
+
+// @public (undocumented)
+export type BedrockInferenceProfileType = 'APPLICATION' | 'SYSTEM_DEFINED';
+
+// @public (undocumented)
+export interface BedrockListFoundationModelsRequest {
+    // (undocumented)
+    readonly byCustomizationType?: string;
+    // (undocumented)
+    readonly byInferenceType?: string;
+    // (undocumented)
+    readonly byOutputModality?: string;
+    // (undocumented)
+    readonly byProvider?: string;
+}
+
+// @public (undocumented)
+export interface BedrockListInferenceProfilesRequest {
+    // (undocumented)
+    readonly maxResults: number;
+    // (undocumented)
+    readonly nextToken?: string;
+    // (undocumented)
+    readonly typeEquals?: BedrockInferenceProfileType;
 }
 
 // @public
@@ -27,6 +182,8 @@ export interface BedrockModelProvider extends ModelProvider {
 export interface BedrockProviderOptions {
     // (undocumented)
     readonly capabilities?: ModelCapabilities;
+    // (undocumented)
+    readonly capabilityResolver?: BedrockCapabilityResolver;
     // (undocumented)
     readonly credentials?: BedrockCredentials;
     // (undocumented)
