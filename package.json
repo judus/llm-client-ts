@@ -1,49 +1,62 @@
 {
-  "name": "ai-ts-suite",
+  "name": "@maduser/ai-ts",
   "version": "0.0.0",
-  "private": true,
-  "description": "Workspace for the Maduser AI TypeScript packages.",
+  "description": "Fluent AI client with OpenAI, MCP, conversation history, documents, and voice.",
   "type": "module",
+  "sideEffects": false,
   "engines": {
     "node": ">=24.0.0"
   },
   "packageManager": "pnpm@11.20.0",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./providers/openai": {
+      "types": "./dist/providers/openai/index.d.ts",
+      "import": "./dist/providers/openai/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    }
+  },
   "scripts": {
-    "api:check": "pnpm build && pnpm --recursive --if-present run api:check",
-    "api:update": "pnpm build && pnpm --recursive --if-present run api:update",
-    "build": "pnpm --recursive --if-present run build",
-    "changeset": "changeset",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm api:check && pnpm deadcode && pnpm package:check",
-    "clean": "pnpm --recursive --if-present run clean",
-    "deadcode": "knip",
+    "build": "tsc --project tsconfig.build.json",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build",
+    "clean": "tsc --build tsconfig.build.json --clean",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
-    "package:check": "node scripts/verify-packages.mjs",
-    "sbom": "cyclonedx-npm --output-file sbom.json --spec-version 1.6",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "typecheck": "tsc --project tsconfig.json --noEmit",
-    "version-packages": "changeset version"
+    "typecheck": "tsc --project tsconfig.json --noEmit"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "ajv": "8.20.0",
+    "openai": "7.4.0"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "0.18.5",
-    "@changesets/cli": "2.31.1",
-    "@cyclonedx/cyclonedx-npm": "4.0.0",
     "@eslint/js": "10.0.1",
-    "@microsoft/api-extractor": "7.58.12",
-    "@stryker-mutator/core": "9.6.1",
-    "@stryker-mutator/vitest-runner": "9.6.1",
     "@types/node": "24.13.3",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.0",
     "eslint-config-prettier": "10.1.8",
     "fast-check": "4.9.0",
-    "knip": "6.32.0",
     "prettier": "3.9.6",
-    "publint": "0.3.23",
-    "tsx": "4.23.11",
     "typescript": "6.0.2",
     "typescript-eslint": "8.66.0",
     "vitest": "4.1.10"

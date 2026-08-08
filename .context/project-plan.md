@@ -1,4 +1,4 @@
-# Maduser AI TypeScript Suite: Focused Client Plan
+# Maduser AI TypeScript: Focused Client Plan
 
 Status: active implementation
 Revised: 2026-08-08
@@ -7,7 +7,7 @@ Language: strict TypeScript, ESM
 
 ## 1. Outcome
 
-Build a reusable npm suite that makes ordinary AI API use ergonomic and consistent across unrelated backend applications.
+Build one reusable npm package that makes ordinary AI API use ergonomic and consistent across unrelated backend applications.
 
 The client must provide:
 
@@ -42,9 +42,11 @@ The host application decides whether a request is allowed and what usage is affo
 
 Finite tool steps, timeouts, cancellation, schema validation, and optimistic revisions remain client responsibilities because they are technical correctness bounds.
 
-## 3. Package layout
+## 3. Repository layout
 
-### `@maduser/ai-ts`
+The project is one Git repository and one published npm package: `@maduser/ai-ts`.
+
+### Main entry point: `@maduser/ai-ts`
 
 Owns:
 
@@ -58,12 +60,12 @@ Owns:
 - aggregate usage and normalized errors;
 - strict low-level `ModelClient` for adapter authors.
 
-Production dependencies remain deliberately small:
+Core production dependencies remain deliberately small:
 
 - the official MCP client SDK;
 - Ajv for JSON Schema validation.
 
-### `@maduser/ai-ts-openai`
+### OpenAI entry point: `@maduser/ai-ts/providers/openai`
 
 Owns all OpenAI SDK coupling:
 
@@ -76,9 +78,11 @@ Owns all OpenAI SDK coupling:
 - speech synthesis;
 - OpenAI error and usage normalization.
 
-### `@maduser/ai-ts-testing`
+### Testing entry point: `@maduser/ai-ts/testing`
 
 Owns deterministic provider fixtures used by adapter and consumer tests. It has no production role.
+
+The entry points are subfolders of the same package. They do not have separate repositories, manifests, versions, releases, or build pipelines.
 
 ## 4. Public API
 
@@ -331,9 +335,6 @@ The suite follows the same discipline expected from the Argon projects:
 - deterministic tests without live credentials;
 - real protocol integration tests where practical;
 - zero-warning lint and format gates;
-- API Extractor reports for public contract drift;
-- dead-code checks;
-- package validation with packed artifacts;
 - enforced coverage thresholds;
 - local Git commits representing coherent milestones.
 
@@ -349,7 +350,7 @@ Live OpenAI smoke tests remain opt-in because they require user credentials and 
 
 Implemented:
 
-- strict workspace and package quality gates;
+- one standard TypeScript package with a single build and quality gate;
 - normalized low-level provider contract;
 - fluent text API;
 - constructor and per-request MCP configuration;
@@ -367,11 +368,10 @@ Implemented:
 
 Remaining before the first publishable alpha:
 
-1. finish public API examples and API Extractor snapshots;
+1. finish public API examples;
 2. add failure-path tests for the new fluent MCP/history composition;
-3. run and restore the complete coverage and package-quality gate;
-4. add changesets and release notes;
-5. optionally run one credentialed OpenAI smoke test supplied by the user.
+3. run the complete quality gate;
+4. optionally run one credentialed OpenAI smoke test supplied by the user.
 
 ## 13. Future work, in order
 

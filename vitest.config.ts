@@ -1,18 +1,10 @@
 import type { ViteUserConfig } from 'vitest/config';
 
 const config: ViteUserConfig = {
-  resolve: {
-    alias: {
-      '@maduser/ai-ts': new URL('./packages/ai/src/index.ts', import.meta.url).pathname,
-      '@maduser/ai-ts-openai': new URL('./packages/openai/src/index.ts', import.meta.url).pathname,
-      '@maduser/ai-ts-testing': new URL('./packages/testing/src/index.ts', import.meta.url)
-        .pathname,
-    },
-  },
   test: {
     coverage: {
-      exclude: ['**/dist/**', '**/index.ts'],
-      include: ['packages/*/src/**/*.ts'],
+      exclude: ['src/index.ts', 'src/providers/openai/index.ts', 'src/testing/index.ts'],
+      include: ['src/**/*.ts'],
       provider: 'v8',
       reporter: ['text', 'json-summary', 'lcov'],
       thresholds: {
@@ -22,7 +14,7 @@ const config: ViteUserConfig = {
         statements: 95,
       },
     },
-    include: ['packages/*/test/**/*.test.ts'],
+    include: ['test/**/*.test.ts'],
     mockReset: true,
     restoreMocks: true,
   },

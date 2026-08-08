@@ -1,10 +1,10 @@
-# Maduser AI TypeScript Suite
+# Maduser AI TypeScript
 
 A focused, provider-neutral AI client for Node.js applications.
 
 ```ts
 import { createAiClient } from '@maduser/ai-ts';
-import { openAI } from '@maduser/ai-ts-openai';
+import { openAI } from '@maduser/ai-ts/providers/openai';
 
 const ai = createAiClient({
   provider: openAI({ apiKey: process.env.OPENAI_API_KEY, model: 'gpt-5.4' }),
@@ -15,13 +15,13 @@ const result = await ai.user('Find information about Sol.').run();
 console.log(result.text, result.usage);
 ```
 
-## Packages
+## Entry points
 
-- `@maduser/ai-ts` — fluent client, normalized provider contracts, MCP execution, history, documents, and voice composition.
-- `@maduser/ai-ts-openai` — OpenAI Responses, transcription, and speech adapters.
-- `@maduser/ai-ts-testing` — deterministic provider fixtures for consumer and adapter tests.
+- `@maduser/ai-ts` — fluent client, MCP execution, history, documents, and voice.
+- `@maduser/ai-ts/providers/openai` — OpenAI Responses, transcription, and speech.
+- `@maduser/ai-ts/testing` — deterministic test utilities.
 
-The suite intentionally contains no approval system, permission policy, autonomous-agent framework, or workflow engine. The host application owns business authorization and spending decisions; the client reports provider usage.
+This is one npm package in one ordinary repository. It intentionally contains no approval system, permission policy, autonomous-agent framework, or workflow engine. The host application owns business authorization and spending decisions; the client reports provider usage.
 
 ## Requirements
 

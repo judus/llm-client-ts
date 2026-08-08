@@ -3,12 +3,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "paths": {
-      "@maduser/ai-ts": ["./packages/ai/src/index.ts"],
-      "@maduser/ai-ts-openai": ["./packages/openai/src/index.ts"],
-      "@maduser/ai-ts-testing": ["./packages/testing/src/index.ts"]
-    },
     "types": ["node"]
   },
-  "include": ["packages/**/*.ts", "scripts/**/*.mjs", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
 }
