@@ -31,6 +31,7 @@ export interface TranscriptionProvider {
 }
 
 export interface SpeechSynthesisOptions {
+  readonly instructions?: string;
   readonly outputMimeType?: string;
   readonly speed?: number;
   readonly voice?: string;

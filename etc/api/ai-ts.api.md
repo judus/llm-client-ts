@@ -1386,6 +1386,8 @@ export { SpeechSynthesis_2 as SpeechSynthesis }
 // @public (undocumented)
 export interface SpeechSynthesisOptions {
     // (undocumented)
+    readonly instructions?: string;
+    // (undocumented)
     readonly outputMimeType?: string;
     // (undocumented)
     readonly speed?: number;

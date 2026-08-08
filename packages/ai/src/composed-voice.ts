@@ -248,6 +248,9 @@ export class ComposedVoiceRuntime {
       const synthesis = await this.#synthesizer.synthesize(
         {
           text: assistantTranscript,
+          ...(request.synthesis?.instructions === undefined
+            ? {}
+            : { instructions: request.synthesis.instructions }),
           ...(request.synthesis?.outputMimeType === undefined
             ? {}
             : { outputMimeType: request.synthesis.outputMimeType }),

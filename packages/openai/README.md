@@ -12,7 +12,33 @@ const provider = createOpenAIProvider();
 const client = new AiClient(provider);
 ```
 
-`OPENAI_API_KEY` is used by the underlying SDK when `apiKey` is omitted. Audio, transcription, speech, and realtime request mappings remain intentionally disabled until their dedicated milestones.
+`OPENAI_API_KEY` is used by the underlying SDK when `apiKey` is omitted. Realtime audio remains intentionally separate until its dedicated milestone.
+
+## Composed voice
+
+The package implements the core `TranscriptionProvider` and `SpeechSynthesisProvider` contracts. They can be used together or mixed independently with another provider.
+
+```ts
+import { ComposedVoiceRuntime } from '@maduser/ai-ts';
+import {
+  createOpenAISpeechSynthesisProvider,
+  createOpenAITranscriptionProvider,
+} from '@maduser/ai-ts-openai';
+
+const voice = new ComposedVoiceRuntime({
+  agent: boundedAgent,
+  synthesizer: createOpenAISpeechSynthesisProvider({
+    voice: 'nova',
+  }),
+  transcriber: createOpenAITranscriptionProvider(),
+});
+```
+
+Bounded transcription defaults to `gpt-transcribe` with partial transcript streaming enabled. Inputs must be materialized bytes in a supported audio format and cannot exceed 25 MB. Set `stream: false` for final-only output; `whisper-1` requires that mode. Language hints use ISO-639-1 codes.
+
+Speech generation defaults to `gpt-4o-mini-tts`, the `alloy` voice, and `audio/mpeg`. Requests can override voice, style instructions, speed, and output MIME type. MP3, Opus, AAC, FLAC, WAV, and PCM outputs map to normalized `AudioPart` bytes. The adapter enforces the 4,096-character input and 0.25–4.0 speed bounds locally.
+
+Both adapters accept the same connection settings as the Responses provider. Cancellation reaches the SDK. OpenAI request IDs, model/voice data, detected languages, token or duration usage, and deterministic TTS character counts are normalized without exposing SDK response types.
 
 ## Image and document input
 

@@ -1,23 +1,27 @@
 import type { ModelCapabilities } from '@maduser/ai-ts';
 
-/** Configuration accepted without exposing OpenAI SDK objects to consumers. */
-export interface OpenAIProviderOptions {
+/** Connection configuration shared by OpenAI package adapters. */
+export interface OpenAIConnectionOptions {
   /** API key. When omitted, the OpenAI SDK uses its standard environment lookup. */
   readonly apiKey?: string;
   /** Alternate OpenAI-compatible API base URL. */
   readonly baseUrl?: string;
-  /** Capability override for a specifically selected model or deployment. */
-  readonly capabilities?: ModelCapabilities;
   /** Maximum retries performed by the OpenAI SDK transport. */
   readonly maxRetries?: number;
   /** OpenAI organization identifier. */
   readonly organization?: string;
   /** OpenAI project identifier. */
   readonly project?: string;
-  /** Persist Responses API objects at OpenAI. Defaults to false. */
-  readonly storeResponses?: boolean;
   /** Default SDK request timeout in milliseconds. */
   readonly timeoutMs?: number;
+}
+
+/** Configuration accepted without exposing OpenAI SDK objects to consumers. */
+export interface OpenAIProviderOptions extends OpenAIConnectionOptions {
+  /** Capability override for a specifically selected model or deployment. */
+  readonly capabilities?: ModelCapabilities;
+  /** Persist Responses API objects at OpenAI. Defaults to false. */
+  readonly storeResponses?: boolean;
 }
 
 /** Returns the conservative capability profile used until a model-specific profile is supplied. */

@@ -9,7 +9,7 @@ Implementation status on 2026-08-08:
 
 - Milestones 0 through 5 are complete in the local Git history.
 - Milestone 6 is in progress. Artifact storage, provider-file leases, OpenAI file and multimodal mapping, the Bedrock Converse/ConverseStream runtime, discovery normalization, and the model capability registry are complete. The packaged AWS control-plane discovery transport remains.
-- Milestone 7 is in progress. Provider-neutral transcription and synthesis contracts, the composed voice runtime, transcript events, canonical conversation persistence, and independent audio retention are complete. Provider adapters and latency telemetry remain.
+- Milestone 7 is in progress. Provider-neutral transcription and synthesis contracts, the composed voice runtime, transcript events, canonical conversation persistence, independent audio retention, and OpenAI transcription/synthesis adapters are complete. Latency telemetry and final conformance coverage remain.
 - Milestones 8 and 9 have not started.
 
 ## 1. Outcome

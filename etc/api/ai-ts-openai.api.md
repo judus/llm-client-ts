@@ -10,12 +10,35 @@ import { ModelProvider } from '@maduser/ai-ts';
 import { ProviderFileAdapter } from '@maduser/ai-ts';
 import { ProviderFileUpload } from '@maduser/ai-ts';
 import { ProviderFileUploadRequest } from '@maduser/ai-ts';
+import { SpeechSynthesis as SpeechSynthesis_2 } from '@maduser/ai-ts';
+import { SpeechSynthesisProvider } from '@maduser/ai-ts';
+import { SpeechSynthesisRequest } from '@maduser/ai-ts';
+import { TranscriptionEvent } from '@maduser/ai-ts';
+import { TranscriptionProvider } from '@maduser/ai-ts';
+import { TranscriptionRequest } from '@maduser/ai-ts';
+import { VoiceOperationOptions } from '@maduser/ai-ts';
 
 // @public
 export function createOpenAIProvider(options?: OpenAIProviderOptions): ModelProvider;
 
 // @public
+export function createOpenAISpeechSynthesisProvider(options?: OpenAISpeechSynthesisProviderOptions): SpeechSynthesisProvider;
+
+// @public
+export function createOpenAITranscriptionProvider(options?: OpenAITranscriptionProviderOptions): TranscriptionProvider;
+
+// @public
 export function defaultOpenAIModelCapabilities(): ModelCapabilities;
+
+// @public
+export interface OpenAIConnectionOptions {
+    readonly apiKey?: string;
+    readonly baseUrl?: string;
+    readonly maxRetries?: number;
+    readonly organization?: string;
+    readonly project?: string;
+    readonly timeoutMs?: number;
+}
 
 // @public
 export class OpenAIFileAdapter implements ProviderFileAdapter {
@@ -76,14 +99,148 @@ export interface OpenAIFileTransport {
 }
 
 // @public
-export interface OpenAIProviderOptions {
-    readonly apiKey?: string;
-    readonly baseUrl?: string;
+export interface OpenAIProviderOptions extends OpenAIConnectionOptions {
     readonly capabilities?: ModelCapabilities;
-    readonly maxRetries?: number;
-    readonly organization?: string;
-    readonly project?: string;
     readonly storeResponses?: boolean;
+}
+
+// @public (undocumented)
+export type OpenAISpeechFormat = 'aac' | 'flac' | 'mp3' | 'opus' | 'pcm' | 'wav';
+
+// @public
+export class OpenAISpeechSynthesisProvider implements SpeechSynthesisProvider {
+    constructor(options?: OpenAISpeechSynthesisProviderOptions, dependencies?: OpenAISpeechSynthesisProviderDependencies);
+    // (undocumented)
+    synthesize(request: SpeechSynthesisRequest, options?: VoiceOperationOptions): Promise<SpeechSynthesis_2>;
+}
+
+// @public (undocumented)
+export interface OpenAISpeechSynthesisProviderDependencies {
+    // (undocumented)
+    readonly transport: OpenAISpeechTransport;
+}
+
+// @public (undocumented)
+export interface OpenAISpeechSynthesisProviderOptions extends OpenAIConnectionOptions {
+    readonly instructions?: string;
+    readonly model?: string;
+    readonly outputMimeType?: string;
+    readonly speed?: number;
+    readonly voice?: string;
+}
+
+// @public (undocumented)
+export interface OpenAISpeechTransport {
+    // (undocumented)
+    synthesize(request: OpenAISpeechTransportRequest, options: OpenAITransportCallOptions): Promise<OpenAISpeechTransportResult>;
+}
+
+// @public (undocumented)
+export interface OpenAISpeechTransportRequest {
+    // (undocumented)
+    readonly format: OpenAISpeechFormat;
+    // (undocumented)
+    readonly instructions?: string;
+    // (undocumented)
+    readonly model: string;
+    // (undocumented)
+    readonly speed?: number;
+    // (undocumented)
+    readonly text: string;
+    // (undocumented)
+    readonly voice: string;
+}
+
+// @public (undocumented)
+export interface OpenAISpeechTransportResult {
+    // (undocumented)
+    readonly audio: Uint8Array;
+    // (undocumented)
+    readonly requestId?: string;
+}
+
+// @public
+export class OpenAITranscriptionProvider implements TranscriptionProvider {
+    constructor(options?: OpenAITranscriptionProviderOptions, dependencies?: OpenAITranscriptionProviderDependencies);
+    // (undocumented)
+    transcribe(request: TranscriptionRequest, options?: VoiceOperationOptions): AsyncGenerator<TranscriptionEvent>;
+}
+
+// @public (undocumented)
+export interface OpenAITranscriptionProviderDependencies {
+    // (undocumented)
+    readonly transport: OpenAITranscriptionTransport;
+}
+
+// @public (undocumented)
+export interface OpenAITranscriptionProviderOptions extends OpenAIConnectionOptions {
+    readonly maxInputBytes?: number;
+    readonly model?: string;
+    readonly stream?: boolean;
+}
+
+// @public (undocumented)
+export interface OpenAITranscriptionTransport {
+    // (undocumented)
+    transcribe(request: OpenAITranscriptionTransportRequest, options: OpenAITransportCallOptions): Promise<OpenAITranscriptionTransportResult>;
+}
+
+// @public (undocumented)
+export type OpenAITranscriptionTransportEvent = {
+    readonly delta: string;
+    readonly type: 'text_delta';
+} | {
+    readonly languages?: readonly string[];
+    readonly text: string;
+    readonly type: 'completed';
+    readonly usage?: OpenAITranscriptionTransportUsage;
+};
+
+// @public (undocumented)
+export interface OpenAITranscriptionTransportRequest {
+    // (undocumented)
+    readonly audio: Uint8Array;
+    // (undocumented)
+    readonly filename: string;
+    // (undocumented)
+    readonly language?: string;
+    // (undocumented)
+    readonly mimeType: string;
+    // (undocumented)
+    readonly model: string;
+    // (undocumented)
+    readonly prompt?: string;
+    // (undocumented)
+    readonly stream: boolean;
+}
+
+// @public (undocumented)
+export interface OpenAITranscriptionTransportResult {
+    // (undocumented)
+    readonly events: AsyncIterable<OpenAITranscriptionTransportEvent>;
+    // (undocumented)
+    readonly requestId?: string;
+}
+
+// @public (undocumented)
+export interface OpenAITranscriptionTransportUsage {
+    // (undocumented)
+    readonly audioInputTokens?: number;
+    // (undocumented)
+    readonly durationMs?: number;
+    // (undocumented)
+    readonly inputTokens?: number;
+    // (undocumented)
+    readonly outputTokens?: number;
+}
+
+// @public (undocumented)
+export interface OpenAITransportCallOptions {
+    // (undocumented)
+    readonly idempotencyKey?: string;
+    // (undocumented)
+    readonly signal?: AbortSignal;
+    // (undocumented)
     readonly timeoutMs?: number;
 }
 
