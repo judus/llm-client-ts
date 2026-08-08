@@ -85,6 +85,12 @@ export interface AgentRunRequest {
 export type AgentRunStatus = 'cancelled' | 'completed' | 'failed' | 'limit_exceeded';
 
 // @public (undocumented)
+export interface AgentRunStream {
+    // (undocumented)
+    stream(request: AgentRunRequest, options?: AgentRunOptions): AsyncIterable<RunEvent>;
+}
+
+// @public (undocumented)
 export interface AgentRuntimeOptions {
     // (undocumented)
     readonly client: AiClient;
@@ -347,6 +353,80 @@ export class CharacterTokenEstimator implements TokenEstimator {
     // (undocumented)
     estimate(message: ConversationMessage): number;
 }
+
+// @public
+export class ComposedVoiceRuntime {
+    constructor(options: ComposedVoiceRuntimeOptions);
+    // (undocumented)
+    run(request: ComposedVoiceTurnRequest, options?: AgentRunOptions): Promise<ComposedVoiceTurnResult>;
+    // (undocumented)
+    stream(request: ComposedVoiceTurnRequest, options?: AgentRunOptions): AsyncGenerator<VoiceTurnEvent, void, void>;
+}
+
+// @public (undocumented)
+export interface ComposedVoiceRuntimeOptions {
+    // (undocumented)
+    readonly agent: AgentRunStream;
+    // (undocumented)
+    readonly artifacts?: ArtifactStore;
+    // (undocumented)
+    readonly clock?: () => Date;
+    // (undocumented)
+    readonly idGenerator?: () => string;
+    // (undocumented)
+    readonly retention?: Partial<VoiceRetentionOptions>;
+    // (undocumented)
+    readonly synthesizer?: SpeechSynthesisProvider;
+    // (undocumented)
+    readonly transcriber: TranscriptionProvider;
+}
+
+// @public (undocumented)
+export interface ComposedVoiceTurnRequest {
+    // (undocumented)
+    readonly agent: AgentDefinition;
+    // (undocumented)
+    readonly audio: AudioPart;
+    // (undocumented)
+    readonly context?: JsonObject;
+    // (undocumented)
+    readonly conversationId?: string;
+    // (undocumented)
+    readonly language?: string;
+    // (undocumented)
+    readonly limits?: Partial<RunLimits>;
+    // (undocumented)
+    readonly prompt?: string;
+    // (undocumented)
+    readonly synthesis?: false | SpeechSynthesisOptions;
+}
+
+// @public (undocumented)
+export interface ComposedVoiceTurnResult {
+    // (undocumented)
+    readonly agentResult?: AgentResult;
+    // (undocumented)
+    readonly assistantTranscript?: string;
+    // (undocumented)
+    readonly error?: SerializedAiError;
+    // (undocumented)
+    readonly inputAudioArtifactId?: string;
+    // (undocumented)
+    readonly outputAudioArtifactId?: string;
+    // (undocumented)
+    readonly status: ComposedVoiceTurnStatus;
+    // (undocumented)
+    readonly synthesis?: SpeechSynthesis_2;
+    // (undocumented)
+    readonly transcription?: Transcription;
+    // (undocumented)
+    readonly turnId: string;
+    // (undocumented)
+    readonly usage: Usage;
+}
+
+// @public (undocumented)
+export type ComposedVoiceTurnStatus = 'agent_failed' | 'completed' | 'persistence_failed' | 'synthesis_failed' | 'transcription_failed';
 
 // @public (undocumented)
 export type ContentPart = AudioPart | DocumentPart | ImagePart | RefusalPart | TextPart | ToolCallPart | ToolResultPart;
@@ -1293,6 +1373,39 @@ export interface SerializedAiError {
 }
 
 // @public (undocumented)
+interface SpeechSynthesis_2 {
+    // (undocumented)
+    readonly audio: AudioPart;
+    // (undocumented)
+    readonly providerMetadata?: JsonObject;
+    // (undocumented)
+    readonly usage: Usage;
+}
+export { SpeechSynthesis_2 as SpeechSynthesis }
+
+// @public (undocumented)
+export interface SpeechSynthesisOptions {
+    // (undocumented)
+    readonly outputMimeType?: string;
+    // (undocumented)
+    readonly speed?: number;
+    // (undocumented)
+    readonly voice?: string;
+}
+
+// @public (undocumented)
+export interface SpeechSynthesisProvider {
+    // (undocumented)
+    synthesize(request: SpeechSynthesisRequest, options?: VoiceOperationOptions): Promise<SpeechSynthesis_2>;
+}
+
+// @public (undocumented)
+export interface SpeechSynthesisRequest extends SpeechSynthesisOptions {
+    // (undocumented)
+    readonly text: string;
+}
+
+// @public (undocumented)
 export interface SummarizationOptions {
     // (undocumented)
     readonly signal?: AbortSignal;
@@ -1327,6 +1440,9 @@ export type TerminalModelEvent = ModelResponseCompletedEvent | ModelResponseFail
 
 // @public (undocumented)
 export type TerminalRunEvent = RunCancelledEvent | RunCompletedEvent | RunFailedEvent | RunLimitExceededEvent;
+
+// @public (undocumented)
+export type TerminalVoiceTurnEvent = VoiceTurnCompletedEvent | VoiceTurnFailedEvent;
 
 // @public (undocumented)
 export interface TextPart {
@@ -1485,6 +1601,45 @@ export interface ToolResultPart {
 }
 
 // @public (undocumented)
+export interface Transcription {
+    // (undocumented)
+    readonly durationMs?: number;
+    // (undocumented)
+    readonly language?: string;
+    // (undocumented)
+    readonly providerMetadata?: JsonObject;
+    // (undocumented)
+    readonly text: string;
+    // (undocumented)
+    readonly usage: Usage;
+}
+
+// @public (undocumented)
+export type TranscriptionEvent = {
+    readonly delta: string;
+    readonly type: 'transcription.text.delta';
+} | {
+    readonly transcription: Transcription;
+    readonly type: 'transcription.completed';
+};
+
+// @public (undocumented)
+export interface TranscriptionProvider {
+    // (undocumented)
+    transcribe(request: TranscriptionRequest, options?: VoiceOperationOptions): AsyncIterable<TranscriptionEvent>;
+}
+
+// @public (undocumented)
+export interface TranscriptionRequest {
+    // (undocumented)
+    readonly audio: AudioPart;
+    // (undocumented)
+    readonly language?: string;
+    // (undocumented)
+    readonly prompt?: string;
+}
+
+// @public (undocumented)
 export class UnsupportedCapabilityError extends AiError {
     constructor(capability: string, model: string);
 }
@@ -1517,6 +1672,95 @@ export interface Usage {
 
 // @public (undocumented)
 export function validateModelRequest(request: ModelRequest, capabilities: ModelCapabilities, providerId: string, streaming: boolean): void;
+
+// @public (undocumented)
+export interface VoiceAgentEvent extends VoiceTurnEventBase {
+    // (undocumented)
+    readonly event: RunEvent;
+    // (undocumented)
+    readonly type: 'voice.agent.event';
+}
+
+// @public (undocumented)
+export interface VoiceOperationOptions {
+    // (undocumented)
+    readonly signal?: AbortSignal;
+}
+
+// @public (undocumented)
+export interface VoiceRetentionOptions {
+    // (undocumented)
+    readonly inputAudio: boolean;
+    // (undocumented)
+    readonly outputAudio: boolean;
+}
+
+// @public (undocumented)
+export interface VoiceSynthesisCompletedEvent extends VoiceTurnEventBase {
+    // (undocumented)
+    readonly artifactId?: string;
+    // (undocumented)
+    readonly durationMs?: number;
+    // (undocumented)
+    readonly mimeType: string;
+    // (undocumented)
+    readonly type: 'voice.synthesis.completed';
+}
+
+// @public (undocumented)
+export interface VoiceTranscriptCompletedEvent extends VoiceTurnEventBase {
+    // (undocumented)
+    readonly transcription: Transcription;
+    // (undocumented)
+    readonly type: 'voice.transcript.completed';
+}
+
+// @public (undocumented)
+export interface VoiceTranscriptDeltaEvent extends VoiceTurnEventBase {
+    // (undocumented)
+    readonly delta: string;
+    // (undocumented)
+    readonly type: 'voice.transcript.delta';
+}
+
+// @public (undocumented)
+export interface VoiceTurnCompletedEvent extends VoiceTurnEventBase {
+    // (undocumented)
+    readonly result: ComposedVoiceTurnResult;
+    // (undocumented)
+    readonly type: 'voice.turn.completed';
+}
+
+// @public (undocumented)
+export type VoiceTurnEvent = VoiceAgentEvent | VoiceSynthesisCompletedEvent | VoiceTranscriptCompletedEvent | VoiceTranscriptDeltaEvent | VoiceTurnCompletedEvent | VoiceTurnFailedEvent | VoiceTurnStartedEvent;
+
+// @public (undocumented)
+export interface VoiceTurnEventBase {
+    // (undocumented)
+    readonly eventId: string;
+    // (undocumented)
+    readonly occurredAt: string;
+    // (undocumented)
+    readonly sequence: number;
+    // (undocumented)
+    readonly turnId: string;
+}
+
+// @public (undocumented)
+export interface VoiceTurnFailedEvent extends VoiceTurnEventBase {
+    // (undocumented)
+    readonly error: SerializedAiError;
+    // (undocumented)
+    readonly result: ComposedVoiceTurnResult;
+    // (undocumented)
+    readonly type: 'voice.turn.failed';
+}
+
+// @public (undocumented)
+export interface VoiceTurnStartedEvent extends VoiceTurnEventBase {
+    // (undocumented)
+    readonly type: 'voice.turn.started';
+}
 
 // @public (undocumented)
 export interface WorkflowApprovalCheckpoint {

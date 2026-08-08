@@ -112,4 +112,30 @@ The runner persists a revision-checked checkpoint before invoking every executor
 
 Releasing the final delete-on-release lease attempts remote deletion. Failed cleanup remains retryable through `cleanup()` and is recorded in the ordered lifecycle event log. Expired leases are released by cleanup as well. Because an upload is a potentially completed external effect, cancellation never claims to undo it; zero-reference uploads remain tracked for deterministic cleanup.
 
+## Composed voice
+
+`ComposedVoiceRuntime` connects independently replaceable transcription and speech-synthesis providers to the normal bounded agent runtime. The completed user transcript is submitted as canonical text with `source: "transcribed"`; the assistant's persisted text remains the canonical response. Typed and spoken turns therefore use the same conversation, context, tools, policy, MCP, and budget behavior.
+
+```ts
+import { ComposedVoiceRuntime } from '@maduser/ai-ts';
+
+const voice = new ComposedVoiceRuntime({
+  agent: runtime,
+  synthesizer,
+  transcriber,
+});
+
+const result = await voice.run({
+  agent: assistant,
+  audio: {
+    mimeType: 'audio/webm',
+    source: { bytes: recordedAudio, type: 'bytes' },
+    type: 'audio',
+  },
+  conversationId: 'conversation-1',
+});
+```
+
+Transcription providers may stream partial deltas before one final transcript. Voice events wrap the unchanged agent events and expose synthesis metadata without embedding raw audio. Input and output retention are configured independently and default to off; enabling either requires an `ArtifactStore`. Passing `synthesis: false` produces a transcript-only response, while an injected synthesizer is used by default otherwise.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.

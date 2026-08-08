@@ -1,6 +1,7 @@
 export { AiClient } from './client.js';
 export { InMemoryArtifactStore } from './artifact-store.js';
 export { BoundedAgentRuntime } from './agent-runtime.js';
+export { ComposedVoiceRuntime } from './composed-voice.js';
 export {
   ApprovalCoordinator,
   InMemoryApprovalStore,
@@ -42,6 +43,7 @@ export type {
   RunLimits,
 } from './agent-types.js';
 export type { AgentRuntimeOptions } from './agent-runtime.js';
+export type { AgentRunStream, ComposedVoiceRuntimeOptions } from './composed-voice.js';
 export type {
   ApprovalAction,
   ApprovalActionKind,
@@ -162,6 +164,31 @@ export type {
   ToolHandler,
 } from './tool-registry.js';
 export type { Money, Usage } from './usage.js';
+export type {
+  ComposedVoiceTurnRequest,
+  ComposedVoiceTurnResult,
+  ComposedVoiceTurnStatus,
+  SpeechSynthesis,
+  SpeechSynthesisOptions,
+  SpeechSynthesisProvider,
+  SpeechSynthesisRequest,
+  TerminalVoiceTurnEvent,
+  Transcription,
+  TranscriptionEvent,
+  TranscriptionProvider,
+  TranscriptionRequest,
+  VoiceAgentEvent,
+  VoiceOperationOptions,
+  VoiceRetentionOptions,
+  VoiceSynthesisCompletedEvent,
+  VoiceTranscriptCompletedEvent,
+  VoiceTranscriptDeltaEvent,
+  VoiceTurnCompletedEvent,
+  VoiceTurnEvent,
+  VoiceTurnEventBase,
+  VoiceTurnFailedEvent,
+  VoiceTurnStartedEvent,
+} from './voice-types.js';
 export type {
   SaveWorkflowRunOptions,
   WorkflowApprovalCheckpoint,
