@@ -13,6 +13,8 @@ Transcription is an event stream so providers can expose ephemeral text deltas b
 
 Input and output audio retention are independent and disabled by default. Retention requires an injected `ArtifactStore`; only already materialized bytes or artifact references can be retained. Default events carry transcript text and audio metadata, never raw audio bytes. The terminal result may contain synthesized audio so the immediate caller can play it without forcing durable retention.
 
+Stage and total latency use a monotonic clock independent from event wall-clock timestamps. Transcription and synthesis completion events expose their own latency; terminal results retain transcription, agent, synthesis, and enabled persistence-stage durations. Output persistence is a separate stage, so a failed artifact write cannot misreport a successful provider synthesis as a synthesis failure.
+
 Realtime, full-duplex voice remains a separate session contract. It has different lifecycle, interruption, transport, and transcript-reconciliation requirements and will not be forced into the turn-oriented composed API.
 
 ## Consequences

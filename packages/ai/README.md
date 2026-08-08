@@ -138,4 +138,6 @@ const result = await voice.run({
 
 Transcription providers may stream partial deltas before one final transcript. Voice events wrap the unchanged agent events and expose synthesis metadata without embedding raw audio. Input and output retention are configured independently and default to off; enabling either requires an `ArtifactStore`. Passing `synthesis: false` produces a transcript-only response, while an injected synthesizer is used by default otherwise.
 
+Terminal results include monotonic transcription, agent, synthesis, optional input/output persistence, and total latency measurements. The transcript- and synthesis-completed events expose their stage latency directly. Inject `monotonicClock` for deterministic tests; wall-clock timestamps remain independent event metadata.
+
 The package is not ready for public release yet. Public contracts may change before the first alpha release.

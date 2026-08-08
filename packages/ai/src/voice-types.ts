@@ -85,9 +85,19 @@ export interface ComposedVoiceTurnResult {
   readonly outputAudioArtifactId?: string;
   readonly status: ComposedVoiceTurnStatus;
   readonly synthesis?: SpeechSynthesis;
+  readonly timings: VoiceTurnTimings;
   readonly transcription?: Transcription;
   readonly turnId: string;
   readonly usage: Usage;
+}
+
+export interface VoiceTurnTimings {
+  readonly agentMs?: number;
+  readonly inputPersistenceMs?: number;
+  readonly outputPersistenceMs?: number;
+  readonly synthesisMs?: number;
+  readonly totalMs: number;
+  readonly transcriptionMs?: number;
 }
 
 export interface VoiceTurnEventBase {
@@ -107,6 +117,7 @@ export interface VoiceTranscriptDeltaEvent extends VoiceTurnEventBase {
 }
 
 export interface VoiceTranscriptCompletedEvent extends VoiceTurnEventBase {
+  readonly latencyMs: number;
   readonly transcription: Transcription;
   readonly type: 'voice.transcript.completed';
 }
@@ -120,6 +131,7 @@ export interface VoiceSynthesisCompletedEvent extends VoiceTurnEventBase {
   readonly artifactId?: string;
   readonly durationMs?: number;
   readonly mimeType: string;
+  readonly latencyMs: number;
   readonly type: 'voice.synthesis.completed';
 }
 

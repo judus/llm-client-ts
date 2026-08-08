@@ -11,6 +11,20 @@ import { ModelProvider } from '@maduser/ai-ts';
 import { ModelRequest } from '@maduser/ai-ts';
 import { ModelResponse } from '@maduser/ai-ts';
 import { ModelStreamEvent } from '@maduser/ai-ts';
+import { SpeechSynthesis as SpeechSynthesis_2 } from '@maduser/ai-ts';
+import { SpeechSynthesisProvider } from '@maduser/ai-ts';
+import { SpeechSynthesisRequest } from '@maduser/ai-ts';
+import { Transcription } from '@maduser/ai-ts';
+import { TranscriptionEvent } from '@maduser/ai-ts';
+import { TranscriptionProvider } from '@maduser/ai-ts';
+import { TranscriptionRequest } from '@maduser/ai-ts';
+import { VoiceOperationOptions } from '@maduser/ai-ts';
+
+// @public
+export function exerciseSpeechSynthesisProvider(provider: SpeechSynthesisProvider, request: SpeechSynthesisRequest, options?: VoiceOperationOptions): Promise<SpeechSynthesis_2>;
+
+// @public
+export function exerciseTranscriptionProvider(provider: TranscriptionProvider, request: TranscriptionRequest, options?: VoiceOperationOptions): Promise<TranscriptionConformanceResult>;
 
 // @public
 export class ScriptedProvider implements ModelProvider {
@@ -49,8 +63,60 @@ export type ScriptedProviderStep = {
     readonly type: 'throw';
 };
 
+// @public
+export class ScriptedSpeechSynthesisProvider implements SpeechSynthesisProvider {
+    constructor(steps: readonly ScriptedSpeechSynthesisStep[]);
+    // (undocumented)
+    get options(): readonly VoiceOperationOptions[];
+    // (undocumented)
+    get remainingSteps(): number;
+    // (undocumented)
+    get requests(): readonly SpeechSynthesisRequest[];
+    // (undocumented)
+    synthesize(request: SpeechSynthesisRequest, options?: VoiceOperationOptions): Promise<SpeechSynthesis_2>;
+}
+
+// @public (undocumented)
+export type ScriptedSpeechSynthesisStep = {
+    readonly error: AiError;
+    readonly type: 'throw';
+} | {
+    readonly synthesis: SpeechSynthesis_2;
+    readonly type: 'synthesize';
+};
+
+// @public
+export class ScriptedTranscriptionProvider implements TranscriptionProvider {
+    constructor(steps: readonly ScriptedTranscriptionStep[]);
+    // (undocumented)
+    get options(): readonly VoiceOperationOptions[];
+    // (undocumented)
+    get remainingSteps(): number;
+    // (undocumented)
+    get requests(): readonly TranscriptionRequest[];
+    // (undocumented)
+    transcribe(request: TranscriptionRequest, options?: VoiceOperationOptions): AsyncGenerator<TranscriptionEvent>;
+}
+
+// @public (undocumented)
+export type ScriptedTranscriptionStep = {
+    readonly error: AiError;
+    readonly type: 'throw';
+} | {
+    readonly events: readonly TranscriptionEvent[];
+    readonly type: 'transcribe';
+};
+
 // @public (undocumented)
 export function textModelCapabilities(): ModelCapabilities;
+
+// @public (undocumented)
+export interface TranscriptionConformanceResult {
+    // (undocumented)
+    readonly deltas: readonly string[];
+    // (undocumented)
+    readonly transcription: Transcription;
+}
 
 // (No @packageDocumentation comment for this package)
 

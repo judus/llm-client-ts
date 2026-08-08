@@ -12,6 +12,7 @@ import {
   type AgentResult,
   type AiError,
   type AudioPart,
+  type ArtifactStore,
   type CallOptions,
   type ModelCapabilities,
   type ModelProvider,
@@ -224,6 +225,125 @@ describe('ComposedVoiceRuntime', () => {
     await expect(artifacts.get('artifact-1')).resolves.toMatchObject({
       bytes: new Uint8Array([4, 5]),
       metadata: { kind: 'voice_output', turnId: 'voice-0' },
+    });
+  });
+
+  it('reports monotonic transcription, agent, synthesis, and total latency', async () => {
+    let now = 100;
+    const runtime = new ComposedVoiceRuntime({
+      agent: {
+        async *stream() {
+          await Promise.resolve();
+          now += 20;
+          yield completedRunEvent();
+        },
+      },
+      monotonicClock: () => now,
+      synthesizer: {
+        synthesize() {
+          now += 30;
+          return Promise.resolve({
+            audio: {
+              mimeType: 'audio/mpeg',
+              source: { bytes: new Uint8Array([4]), type: 'bytes' },
+              type: 'audio',
+            },
+            usage: {},
+          });
+        },
+      },
+      transcriber: {
+        async *transcribe() {
+          await Promise.resolve();
+          now += 15;
+          yield completedTranscription();
+        },
+      },
+    });
+
+    const events = await collect(runtime.stream({ agent, audio: inputAudio }));
+
+    expect(events.find(({ type }) => type === 'voice.transcript.completed')).toMatchObject({
+      latencyMs: 15,
+    });
+    expect(events.find(({ type }) => type === 'voice.synthesis.completed')).toMatchObject({
+      latencyMs: 30,
+    });
+    expect(events.at(-1)).toMatchObject({
+      result: {
+        timings: { agentMs: 20, synthesisMs: 30, totalMs: 65, transcriptionMs: 15 },
+      },
+    });
+  });
+
+  it('measures persistence independently and classifies output retention failures correctly', async () => {
+    let now = 0;
+    const artifacts: ArtifactStore = {
+      delete: () => Promise.resolve(),
+      get: () => Promise.resolve(undefined),
+      put(input) {
+        if (input.metadata?.['kind'] === 'voice_input') {
+          now += 4;
+          return Promise.resolve({
+            byteLength: 3,
+            checksum: { algorithm: 'sha256', value: 'input-checksum' },
+            createdAt: '2026-08-08T12:00:00.000Z',
+            id: 'input-artifact',
+            mimeType: input.mimeType,
+          });
+        }
+        now += 6;
+        return Promise.reject(new Error('artifact backend unavailable'));
+      },
+    };
+    const runtime = new ComposedVoiceRuntime({
+      agent: {
+        async *stream() {
+          await Promise.resolve();
+          now += 20;
+          yield completedRunEvent();
+        },
+      },
+      artifacts,
+      monotonicClock: () => now,
+      retention: { inputAudio: true, outputAudio: true },
+      synthesizer: {
+        synthesize() {
+          now += 30;
+          return Promise.resolve({
+            audio: {
+              mimeType: 'audio/mpeg',
+              source: { bytes: new Uint8Array([4]), type: 'bytes' },
+              type: 'audio',
+            },
+            usage: {},
+          });
+        },
+      },
+      transcriber: {
+        async *transcribe() {
+          await Promise.resolve();
+          now += 10;
+          yield completedTranscription();
+        },
+      },
+    });
+
+    const result = await runtime.run({ agent, audio: inputAudio });
+
+    expect(result).toMatchObject({
+      error: { code: 'voice_persistence_failed' },
+      inputAudioArtifactId: 'input-artifact',
+      status: 'persistence_failed',
+      synthesis: { audio: { mimeType: 'audio/mpeg' } },
+      timings: {
+        agentMs: 20,
+        inputPersistenceMs: 4,
+        outputPersistenceMs: 6,
+        synthesisMs: 30,
+        totalMs: 70,
+        transcriptionMs: 10,
+      },
     });
   });
 

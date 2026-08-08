@@ -188,6 +188,7 @@ export type {
   VoiceTurnEventBase,
   VoiceTurnFailedEvent,
   VoiceTurnStartedEvent,
+  VoiceTurnTimings,
 } from './voice-types.js';
 export type {
   SaveWorkflowRunOptions,

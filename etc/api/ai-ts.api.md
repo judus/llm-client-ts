@@ -374,6 +374,8 @@ export interface ComposedVoiceRuntimeOptions {
     // (undocumented)
     readonly idGenerator?: () => string;
     // (undocumented)
+    readonly monotonicClock?: () => number;
+    // (undocumented)
     readonly retention?: Partial<VoiceRetentionOptions>;
     // (undocumented)
     readonly synthesizer?: SpeechSynthesisProvider;
@@ -417,6 +419,8 @@ export interface ComposedVoiceTurnResult {
     readonly status: ComposedVoiceTurnStatus;
     // (undocumented)
     readonly synthesis?: SpeechSynthesis_2;
+    // (undocumented)
+    readonly timings: VoiceTurnTimings;
     // (undocumented)
     readonly transcription?: Transcription;
     // (undocumented)
@@ -1704,6 +1708,8 @@ export interface VoiceSynthesisCompletedEvent extends VoiceTurnEventBase {
     // (undocumented)
     readonly durationMs?: number;
     // (undocumented)
+    readonly latencyMs: number;
+    // (undocumented)
     readonly mimeType: string;
     // (undocumented)
     readonly type: 'voice.synthesis.completed';
@@ -1711,6 +1717,8 @@ export interface VoiceSynthesisCompletedEvent extends VoiceTurnEventBase {
 
 // @public (undocumented)
 export interface VoiceTranscriptCompletedEvent extends VoiceTurnEventBase {
+    // (undocumented)
+    readonly latencyMs: number;
     // (undocumented)
     readonly transcription: Transcription;
     // (undocumented)
@@ -1762,6 +1770,22 @@ export interface VoiceTurnFailedEvent extends VoiceTurnEventBase {
 export interface VoiceTurnStartedEvent extends VoiceTurnEventBase {
     // (undocumented)
     readonly type: 'voice.turn.started';
+}
+
+// @public (undocumented)
+export interface VoiceTurnTimings {
+    // (undocumented)
+    readonly agentMs?: number;
+    // (undocumented)
+    readonly inputPersistenceMs?: number;
+    // (undocumented)
+    readonly outputPersistenceMs?: number;
+    // (undocumented)
+    readonly synthesisMs?: number;
+    // (undocumented)
+    readonly totalMs: number;
+    // (undocumented)
+    readonly transcriptionMs?: number;
 }
 
 // @public (undocumented)

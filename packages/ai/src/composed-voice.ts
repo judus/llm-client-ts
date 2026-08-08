@@ -14,6 +14,7 @@ import type {
   TranscriptionEvent,
   TranscriptionProvider,
   VoiceRetentionOptions,
+  VoiceTurnTimings,
   VoiceTurnEvent,
   VoiceTurnEventBase,
 } from './voice-types.js';
@@ -27,6 +28,7 @@ export interface ComposedVoiceRuntimeOptions {
   readonly artifacts?: ArtifactStore;
   readonly clock?: () => Date;
   readonly idGenerator?: () => string;
+  readonly monotonicClock?: () => number;
   readonly retention?: Partial<VoiceRetentionOptions>;
   readonly synthesizer?: SpeechSynthesisProvider;
   readonly transcriber: TranscriptionProvider;
@@ -40,6 +42,7 @@ export class ComposedVoiceRuntime {
   readonly #artifacts: ArtifactStore | undefined;
   readonly #clock: () => Date;
   readonly #idGenerator: () => string;
+  readonly #monotonicClock: () => number;
   readonly #retention: VoiceRetentionOptions;
   readonly #synthesizer: SpeechSynthesisProvider | undefined;
   readonly #transcriber: TranscriptionProvider;
@@ -49,6 +52,7 @@ export class ComposedVoiceRuntime {
     this.#artifacts = options.artifacts;
     this.#clock = options.clock ?? (() => new Date());
     this.#idGenerator = options.idGenerator ?? (() => globalThis.crypto.randomUUID());
+    this.#monotonicClock = options.monotonicClock ?? (() => globalThis.performance.now());
     this.#retention = { ...defaultRetention, ...options.retention };
     this.#synthesizer = options.synthesizer;
     this.#transcriber = options.transcriber;
@@ -86,6 +90,7 @@ export class ComposedVoiceRuntime {
   ): AsyncGenerator<VoiceTurnEvent, void, void> {
     const turnId = this.#idGenerator();
     const events = new VoiceEventSequencer(turnId, this.#clock, this.#idGenerator);
+    const timings = new VoiceTimingRecorder(this.#monotonicClock);
     let transcription: Transcription | undefined;
     let inputAudioArtifactId: string | undefined;
     let agentResult: AgentResult | undefined;
@@ -93,6 +98,7 @@ export class ComposedVoiceRuntime {
 
     yield { ...events.next(), type: 'voice.turn.started' };
 
+    timings.start('transcription');
     try {
       for await (const event of this.#transcriber.transcribe(
         {
@@ -113,6 +119,7 @@ export class ComposedVoiceRuntime {
           usage = addUsage(usage, transcription.usage);
           yield {
             ...events.next(),
+            latencyMs: timings.finish('transcription'),
             transcription,
             type: 'voice.transcript.completed',
           };
@@ -122,16 +129,21 @@ export class ComposedVoiceRuntime {
         throw malformedTranscription('The transcription provider did not complete.');
       }
     } catch (error) {
+      timings.finishIfStarted('transcription');
       const normalized = normalizeVoiceError(error, 'transcription');
       yield failedEvent(events, {
         error: serializeAiError(normalized),
         status: 'transcription_failed',
+        timings: timings.snapshot(),
         turnId,
         usage,
       });
       return;
     }
 
+    if (this.#retention.inputAudio) {
+      timings.start('inputPersistence');
+    }
     try {
       inputAudioArtifactId = await this.#retainAudio(
         request.audio,
@@ -139,11 +151,14 @@ export class ComposedVoiceRuntime {
         turnId,
         options.signal,
       );
+      timings.finishIfStarted('inputPersistence');
     } catch (error) {
+      timings.finishIfStarted('inputPersistence');
       const normalized = normalizeVoiceError(error, 'persistence');
       yield failedEvent(events, {
         error: serializeAiError(normalized),
         status: 'persistence_failed',
+        timings: timings.snapshot(),
         transcription,
         turnId,
         usage,
@@ -152,6 +167,7 @@ export class ComposedVoiceRuntime {
     }
 
     let terminalRun: TerminalRunEvent | undefined;
+    timings.start('agent');
     try {
       for await (const event of this.#agent.stream(agentRequest(request, transcription), options)) {
         if (terminalRun !== undefined) {
@@ -175,12 +191,15 @@ export class ComposedVoiceRuntime {
       }
       agentResult = terminalRun.result;
       usage = addUsage(usage, agentResult.usage);
+      timings.finish('agent');
     } catch (error) {
+      timings.finishIfStarted('agent');
       const normalized = normalizeVoiceError(error, 'agent');
       yield failedEvent(events, {
         error: serializeAiError(normalized),
         ...(inputAudioArtifactId === undefined ? {} : { inputAudioArtifactId }),
         status: 'agent_failed',
+        timings: timings.snapshot(),
         transcription,
         turnId,
         usage,
@@ -201,6 +220,7 @@ export class ComposedVoiceRuntime {
         error,
         ...(inputAudioArtifactId === undefined ? {} : { inputAudioArtifactId }),
         status: 'agent_failed',
+        timings: timings.snapshot(),
         transcription,
         turnId,
         usage,
@@ -220,6 +240,7 @@ export class ComposedVoiceRuntime {
         error,
         ...(inputAudioArtifactId === undefined ? {} : { inputAudioArtifactId }),
         status: 'agent_failed',
+        timings: timings.snapshot(),
         transcription,
         turnId,
         usage,
@@ -235,6 +256,7 @@ export class ComposedVoiceRuntime {
           assistantTranscript,
           ...(inputAudioArtifactId === undefined ? {} : { inputAudioArtifactId }),
           status: 'completed',
+          timings: timings.snapshot(),
           transcription,
           turnId,
           usage,
@@ -244,8 +266,11 @@ export class ComposedVoiceRuntime {
       return;
     }
 
+    let synthesis: SpeechSynthesis;
+    let synthesisLatencyMs: number;
+    timings.start('synthesis');
     try {
-      const synthesis = await this.#synthesizer.synthesize(
+      synthesis = await this.#synthesizer.synthesize(
         {
           text: assistantTranscript,
           ...(request.synthesis?.instructions === undefined
@@ -261,37 +286,9 @@ export class ComposedVoiceRuntime {
       );
       validateSynthesis(synthesis);
       usage = addUsage(usage, synthesis.usage);
-      const outputAudioArtifactId = await this.#retainAudio(
-        synthesis.audio,
-        'voice_output',
-        turnId,
-        options.signal,
-      );
-      yield {
-        ...events.next(),
-        ...(outputAudioArtifactId === undefined ? {} : { artifactId: outputAudioArtifactId }),
-        ...(synthesis.audio.durationMs === undefined
-          ? {}
-          : { durationMs: synthesis.audio.durationMs }),
-        mimeType: synthesis.audio.mimeType,
-        type: 'voice.synthesis.completed',
-      };
-      yield {
-        ...events.next(),
-        result: {
-          agentResult,
-          assistantTranscript,
-          ...(inputAudioArtifactId === undefined ? {} : { inputAudioArtifactId }),
-          ...(outputAudioArtifactId === undefined ? {} : { outputAudioArtifactId }),
-          status: 'completed',
-          synthesis,
-          transcription,
-          turnId,
-          usage,
-        },
-        type: 'voice.turn.completed',
-      };
+      synthesisLatencyMs = timings.finish('synthesis');
     } catch (error) {
+      timings.finishIfStarted('synthesis');
       const normalized = normalizeVoiceError(error, 'synthesis');
       yield failedEvent(events, {
         agentResult,
@@ -299,11 +296,70 @@ export class ComposedVoiceRuntime {
         error: serializeAiError(normalized),
         ...(inputAudioArtifactId === undefined ? {} : { inputAudioArtifactId }),
         status: 'synthesis_failed',
+        timings: timings.snapshot(),
         transcription,
         turnId,
         usage,
       });
+      return;
     }
+
+    let outputAudioArtifactId: string | undefined;
+    if (this.#retention.outputAudio) {
+      timings.start('outputPersistence');
+    }
+    try {
+      outputAudioArtifactId = await this.#retainAudio(
+        synthesis.audio,
+        'voice_output',
+        turnId,
+        options.signal,
+      );
+      timings.finishIfStarted('outputPersistence');
+    } catch (error) {
+      timings.finishIfStarted('outputPersistence');
+      const normalized = normalizeVoiceError(error, 'persistence');
+      yield failedEvent(events, {
+        agentResult,
+        assistantTranscript,
+        error: serializeAiError(normalized),
+        ...(inputAudioArtifactId === undefined ? {} : { inputAudioArtifactId }),
+        status: 'persistence_failed',
+        synthesis,
+        timings: timings.snapshot(),
+        transcription,
+        turnId,
+        usage,
+      });
+      return;
+    }
+
+    yield {
+      ...events.next(),
+      ...(outputAudioArtifactId === undefined ? {} : { artifactId: outputAudioArtifactId }),
+      ...(synthesis.audio.durationMs === undefined
+        ? {}
+        : { durationMs: synthesis.audio.durationMs }),
+      latencyMs: synthesisLatencyMs,
+      mimeType: synthesis.audio.mimeType,
+      type: 'voice.synthesis.completed',
+    };
+    yield {
+      ...events.next(),
+      result: {
+        agentResult,
+        assistantTranscript,
+        ...(inputAudioArtifactId === undefined ? {} : { inputAudioArtifactId }),
+        ...(outputAudioArtifactId === undefined ? {} : { outputAudioArtifactId }),
+        status: 'completed',
+        synthesis,
+        timings: timings.snapshot(),
+        transcription,
+        turnId,
+        usage,
+      },
+      type: 'voice.turn.completed',
+    };
   }
 
   async #retainAudio(
@@ -462,5 +518,74 @@ class VoiceEventSequencer {
     };
     this.#sequence += 1;
     return event;
+  }
+}
+
+type VoiceTimingStage =
+  'agent' | 'inputPersistence' | 'outputPersistence' | 'synthesis' | 'transcription';
+
+class VoiceTimingRecorder {
+  readonly #durations = new Map<VoiceTimingStage, number>();
+  readonly #now: () => number;
+  readonly #startedAt: number;
+  readonly #stageStarts = new Map<VoiceTimingStage, number>();
+
+  public constructor(now: () => number) {
+    this.#now = now;
+    this.#startedAt = this.#readTime();
+  }
+
+  public start(stage: VoiceTimingStage): void {
+    if (this.#stageStarts.has(stage) || this.#durations.has(stage)) {
+      throw new AiError('invalid_request', `Voice timing stage ${stage} started twice.`, {
+        code: 'voice_timing_stage_invalid',
+      });
+    }
+    this.#stageStarts.set(stage, this.#readTime());
+  }
+
+  public finish(stage: VoiceTimingStage): number {
+    const startedAt = this.#stageStarts.get(stage);
+    if (startedAt === undefined) {
+      throw new AiError('invalid_request', `Voice timing stage ${stage} was not started.`, {
+        code: 'voice_timing_stage_invalid',
+      });
+    }
+    const duration = Math.max(0, this.#readTime() - startedAt);
+    this.#stageStarts.delete(stage);
+    this.#durations.set(stage, duration);
+    return duration;
+  }
+
+  public finishIfStarted(stage: VoiceTimingStage): void {
+    if (this.#stageStarts.has(stage)) {
+      this.finish(stage);
+    }
+  }
+
+  public snapshot(): VoiceTurnTimings {
+    const agentMs = this.#durations.get('agent');
+    const inputPersistenceMs = this.#durations.get('inputPersistence');
+    const outputPersistenceMs = this.#durations.get('outputPersistence');
+    const synthesisMs = this.#durations.get('synthesis');
+    const transcriptionMs = this.#durations.get('transcription');
+    return {
+      ...(agentMs === undefined ? {} : { agentMs }),
+      ...(inputPersistenceMs === undefined ? {} : { inputPersistenceMs }),
+      ...(outputPersistenceMs === undefined ? {} : { outputPersistenceMs }),
+      ...(synthesisMs === undefined ? {} : { synthesisMs }),
+      totalMs: Math.max(0, this.#readTime() - this.#startedAt),
+      ...(transcriptionMs === undefined ? {} : { transcriptionMs }),
+    };
+  }
+
+  #readTime(): number {
+    const value = this.#now();
+    if (!Number.isFinite(value)) {
+      throw new AiError('invalid_request', 'Voice monotonic clock returned an invalid value.', {
+        code: 'voice_monotonic_clock_invalid',
+      });
+    }
+    return value;
   }
 }
