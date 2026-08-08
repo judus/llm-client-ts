@@ -32,6 +32,19 @@ The default lifetime is ten minutes; configured lifetimes must be 10–7,200 sec
 
 The returned `value` must be delivered only to its intended client and must never enter logs, traces, analytics, URLs, or persisted conversation state. Credential issuance is deliberately separate from the forthcoming live WebSocket/WebRTC session transports.
 
+The low-level ephemeral WebSocket transport is available separately. It uses the runtime's standard WebSocket implementation, bounds unread events, propagates cancellation, and accepts only short-lived `ek_` credentials:
+
+```ts
+import { createOpenAIRealtimeTransport } from '@maduser/ai-ts-openai';
+
+const transport = createOpenAIRealtimeTransport({
+  clientSecret: secret.value,
+  maxPendingEvents: 1024,
+});
+```
+
+This wire transport intentionally exposes only JSON messages and normalized lifecycle events. Application code should use the forthcoming `RealtimeVoiceProvider` adapter instead of sending provider events directly.
+
 ## Composed voice
 
 The package implements the core `TranscriptionProvider` and `SpeechSynthesisProvider` contracts. They can be used together or mixed independently with another provider.

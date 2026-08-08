@@ -4,7 +4,9 @@
 
 ```ts
 
+import { AiError } from '@maduser/ai-ts';
 import { CallOptions } from '@maduser/ai-ts';
+import { JsonObject } from '@maduser/ai-ts';
 import type { ModelCapabilities } from '@maduser/ai-ts';
 import { ModelProvider } from '@maduser/ai-ts';
 import { ProviderFileAdapter } from '@maduser/ai-ts';
@@ -27,6 +29,9 @@ export function createOpenAIProvider(options?: OpenAIProviderOptions): ModelProv
 
 // @public (undocumented)
 export function createOpenAIRealtimeClientSecretIssuer(options?: OpenAIRealtimeClientSecretOptions): RealtimeClientSecretIssuer;
+
+// @public (undocumented)
+export function createOpenAIRealtimeTransport(options: OpenAIRealtimeTransportOptions): OpenAIRealtimeTransport;
 
 // @public
 export function createOpenAISpeechSynthesisProvider(options?: OpenAISpeechSynthesisProviderOptions): SpeechSynthesisProvider;
@@ -179,6 +184,48 @@ export interface OpenAIRealtimeTranscriptionConfig {
     readonly model: string;
     // (undocumented)
     readonly prompt?: string;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeTransport {
+    // (undocumented)
+    connect(request: OpenAIRealtimeTransportConnectRequest, options: CallOptions): Promise<OpenAIRealtimeTransportConnection>;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeTransportConnection {
+    // (undocumented)
+    close(code?: number, reason?: string): void;
+    // (undocumented)
+    events(): AsyncIterable<OpenAIRealtimeTransportEvent>;
+    // (undocumented)
+    send(event: JsonObject): void;
+}
+
+// @public (undocumented)
+export interface OpenAIRealtimeTransportConnectRequest {
+    // (undocumented)
+    readonly model: string;
+}
+
+// @public (undocumented)
+export type OpenAIRealtimeTransportEvent = {
+    readonly error: AiError;
+    readonly type: 'error';
+} | {
+    readonly code?: number;
+    readonly reason?: string;
+    readonly type: 'closed';
+} | {
+    readonly message: JsonObject;
+    readonly type: 'message';
+};
+
+// @public (undocumented)
+export interface OpenAIRealtimeTransportOptions {
+    readonly baseUrl?: string;
+    readonly clientSecret: string;
+    readonly maxPendingEvents?: number;
 }
 
 // @public (undocumented)
