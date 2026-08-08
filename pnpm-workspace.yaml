@@ -1,6 +1,5 @@
 packages:
   - packages/*
-  - fixtures/*
 autoInstallPeers: false
 allowBuilds:
   esbuild: true
