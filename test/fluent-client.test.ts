@@ -10,6 +10,7 @@ import {
   type ModelCapabilities,
   type ModelResponse,
   type ModelStreamEvent,
+  type SerializedAiError,
   type SpeechSynthesisProvider,
   type ToolCall,
   type TranscriptionProvider,
@@ -143,6 +144,34 @@ describe('createAiClient', () => {
       'run.retrying',
       'run.completed',
     ]);
+  });
+
+  it('preserves a provider stream failure instead of reporting a missing response', async () => {
+    const provider = configuredProvider([
+      {
+        events: [
+          streamEvent(0, { type: 'model.request.started' }),
+          streamEvent(1, {
+            error: {
+              category: 'invalid_request',
+              code: 'invalid_tool_schema',
+              message: 'The tool schema is invalid.',
+              retryable: false,
+            },
+            type: 'model.response.failed',
+          }),
+        ],
+        type: 'stream',
+      },
+    ]);
+
+    await expect(
+      collectEvents(createAiClient({ provider }).chat('failed-stream').user('Hello.').stream()),
+    ).rejects.toMatchObject({
+      category: 'invalid_request',
+      code: 'invalid_tool_schema',
+      message: 'The tool schema is invalid.',
+    });
   });
 
   it('streams transcribed input and synthesizes the completed answer', async () => {
@@ -891,6 +920,7 @@ function text(value: string): ConversationMessage['content'] {
 type StreamEventPayload =
   | { readonly type: 'model.request.started' }
   | { readonly delta: string; readonly outputIndex: number; readonly type: 'model.text.delta' }
+  | { readonly error: SerializedAiError; readonly type: 'model.response.failed' }
   | { readonly toolCall: ToolCall; readonly type: 'model.tool_call.completed' }
   | { readonly response: ModelResponse; readonly type: 'model.response.completed' };
 

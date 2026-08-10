@@ -296,7 +296,7 @@ function mapTool(tool: ToolDefinition): Tool {
     name: tool.name,
     ...(tool.outputSchema === undefined ? {} : { output_schema: tool.outputSchema }),
     parameters: tool.inputSchema,
-    strict: true,
+    strict: false,
     type: 'function',
   };
 }

@@ -456,6 +456,12 @@ export class AiRequest {
               yield { call: event.toolCall, type: 'tool.call' };
             } else if (event.type === 'model.response.completed') {
               response = event.response;
+            } else if (event.type === 'model.response.failed') {
+              throw new AiError(event.error.category, event.error.message, {
+                code: event.error.code,
+                ...(event.error.details === undefined ? {} : { details: event.error.details }),
+                retryable: event.error.retryable,
+              });
             }
           }
         } catch (error) {

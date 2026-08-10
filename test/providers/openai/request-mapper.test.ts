@@ -9,7 +9,7 @@ import {
 import { request } from './fixtures.js';
 
 describe('OpenAI request mapping', () => {
-  it('maps portable text, tools, and strict structured output to Responses', () => {
+  it('maps portable tools without imposing OpenAI strict-schema constraints', () => {
     expect(mapOpenAIRequest(request, false)).toEqual({
       input: [
         {
@@ -37,7 +37,7 @@ describe('OpenAI request mapping', () => {
           description: 'Get the weather for a place.',
           name: 'get_weather',
           parameters: request.tools?.[0]?.inputSchema,
-          strict: true,
+          strict: false,
           type: 'function',
         },
       ],
