@@ -14,6 +14,7 @@ export type {
   AiHistoryCompressionOptions,
   AiResult,
   AiRunOptions,
+  AiStreamEvent,
   AudioInput,
   CreateAiClientOptions,
   DocumentInput,
@@ -60,6 +61,7 @@ export type {
   TerminalModelEvent,
 } from './event.js';
 export type { JsonArray, JsonObject, JsonPrimitive, JsonSchema, JsonValue } from './json.js';
+export type { HostedTool } from './hosted-tool.js';
 export type { McpServer, McpServerOptions } from './mcp-client.js';
 export type { ConversationMessage, MessageRole } from './message.js';
 export type {

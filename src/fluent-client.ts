@@ -2,6 +2,7 @@ import type { CallOptions } from './call-options.js';
 import type { AudioPart, DocumentPart, ToolResultPart } from './content.js';
 import type { ConversationStore } from './conversation-store.js';
 import { AiError, UnsupportedCapabilityError } from './error.js';
+import type { HostedTool } from './hosted-tool.js';
 import type { ConversationMessage } from './message.js';
 import type { JsonObject, JsonValue } from './json.js';
 import type { FinishReason, ModelResponse } from './model.js';
@@ -12,6 +13,7 @@ import { ModelClient } from './client.js';
 import { CharacterTokenEstimator, PairSafeHistorySelector } from './context-selection.js';
 import { ToolRegistry, type LocalTool, type ToolExecutionOutput } from './tool-registry.js';
 import type { ToolCallPart } from './content.js';
+import type { ToolCall } from './tool.js';
 import { addUsage, type Usage } from './usage.js';
 import type { SpeechSynthesis, SpeechSynthesisOptions, Transcription } from './voice-types.js';
 
@@ -34,6 +36,7 @@ export interface AiHistoryCompressionOptions {
 
 export interface CreateAiClientOptions {
   readonly history?: AiHistoryOptions;
+  readonly hostedTools?: readonly HostedTool[];
   readonly instructions?: string;
   readonly maxToolSteps?: number;
   readonly mcp?: readonly McpServer[];
@@ -84,8 +87,23 @@ export interface AiResult {
   readonly usage: Usage;
 }
 
+/** Progress emitted while a fluent request is running. The completed event carries the persisted result. */
+export type AiStreamEvent =
+  | { readonly chatId: string; readonly type: 'run.started' }
+  | { readonly attempt: number; readonly type: 'run.retrying' }
+  | { readonly type: 'text.reset' }
+  | { readonly delta: string; readonly type: 'text.delta' }
+  | { readonly call: ToolCall; readonly type: 'tool.call' }
+  | {
+      readonly callId: string;
+      readonly status: ToolResultPart['status'];
+      readonly type: 'tool.result';
+    }
+  | { readonly result: AiResult; readonly type: 'run.completed' };
+
 interface ClientDefaults {
   readonly history?: AiHistoryOptions;
+  readonly hostedTools: readonly HostedTool[];
   readonly instructions?: string;
   readonly maxToolSteps: number;
   readonly mcp: readonly McpServer[];
@@ -115,6 +133,7 @@ export class AiClient {
   public constructor(options: CreateAiClientOptions) {
     this.#defaults = {
       ...(options.history === undefined ? {} : { history: options.history }),
+      hostedTools: [...(options.hostedTools ?? [])],
       ...(options.instructions === undefined
         ? {}
         : { instructions: nonEmpty(options.instructions, 'instructions') }),
@@ -233,6 +252,137 @@ export class AiRequest {
 
     if (this.#state.audio !== undefined) {
       const transcriber = provider.transcription;
+      if (transcriber === undefined)
+        throw new UnsupportedCapabilityError('transcription', provider.model);
+      transcript = await transcribe(transcriber, this.#state.audio, options.signal);
+      usage = addUsage(usage, transcript.usage);
+      userText = transcript.text;
+    }
+    if (userText === undefined) {
+      throw new AiError('invalid_request', 'A request requires text or audio input.', {
+        code: 'request_input_missing',
+      });
+    }
+
+    const pending: ConversationMessage[] = [
+      message(this.#state.chatId, 'user', [
+        {
+          source: transcript === undefined ? 'typed' : 'transcribed',
+          text: userText,
+          type: 'text',
+        },
+        ...this.#state.documents,
+      ]),
+    ];
+    const preparedHistory = await prepareHistory(
+      this.#defaults,
+      modelClient,
+      history.messages,
+      pending,
+      this.#state.chatId,
+      options,
+    );
+    usage = addUsage(usage, preparedHistory.usage);
+    if (preparedHistory.summary !== undefined) pending.unshift(preparedHistory.summary);
+    const mcpServers = this.#state.mcp ?? this.#defaults.mcp;
+    const opened =
+      mcpServers.length === 0 || this.#state.tools?.length === 0
+        ? { close: (): Promise<void> => Promise.resolve(), tools: [] as readonly LocalTool[] }
+        : await openMcpServers(mcpServers, options.signal);
+
+    try {
+      const registry = toolRegistry(opened.tools, this.#state.tools);
+      let finalResponse: ModelResponse | undefined;
+      for (let step = 0; step <= this.#defaults.maxToolSteps; step += 1) {
+        const context = selectContext(this.#defaults, preparedHistory.messages, pending);
+        const response = await modelClient.generate(
+          {
+            ...(this.#defaults.hostedTools.length === 0
+              ? {}
+              : { hostedTools: this.#defaults.hostedTools }),
+            messages: prependInstructions(context, this.#defaults.instructions, this.#state.chatId),
+            model: { model: provider.model, provider: provider.id },
+            ...(registry.definitions.length === 0 && this.#defaults.hostedTools.length === 0
+              ? {}
+              : { toolChoice: { type: 'auto' as const }, tools: registry.definitions }),
+          },
+          options,
+        );
+        finalResponse = response;
+        usage = addUsage(usage, response.usage);
+        pending.push(response.message);
+        const calls = toolCalls(response.message);
+        if (calls.length === 0) break;
+        if (step === this.#defaults.maxToolSteps) {
+          throw new AiError('tool_execution', 'The model exceeded the MCP tool-step limit.', {
+            code: 'tool_step_limit_exceeded',
+            details: { maxToolSteps: this.#defaults.maxToolSteps },
+          });
+        }
+        const results = await Promise.all(
+          calls.map(async (call) =>
+            executeTool(
+              registry,
+              call,
+              this.#state.chatId,
+              this.#defaults.toolTimeoutMs,
+              options.signal,
+            ),
+          ),
+        );
+        pending.push(message(this.#state.chatId, 'tool', results, response.message.id));
+      }
+      if (finalResponse === undefined) {
+        throw new AiError('malformed_response', 'The model run completed without a response.', {
+          code: 'model_response_missing',
+        });
+      }
+      await persistHistory(
+        this.#defaults.history?.repository,
+        this.#state.chatId,
+        pending,
+        history.revision,
+      );
+      const text = assistantText(finalResponse.message);
+      let audio: SpeechSynthesis | undefined;
+      if (this.#state.speak !== undefined) {
+        const synthesizer = provider.speechSynthesis;
+        if (synthesizer === undefined)
+          throw new UnsupportedCapabilityError('speech synthesis', provider.model);
+        audio = await synthesizer.synthesize(
+          { text, ...this.#state.speak },
+          options.signal === undefined ? {} : { signal: options.signal },
+        );
+        usage = addUsage(usage, audio.usage);
+      }
+      return {
+        ...(audio === undefined ? {} : { audio }),
+        chatId: this.#state.chatId,
+        finishReason: finalResponse.finishReason,
+        message: finalResponse.message,
+        text,
+        ...(transcript === undefined ? {} : { transcript }),
+        usage,
+      };
+    } finally {
+      await opened.close();
+    }
+  }
+
+  public async *stream(options: AiRunOptions = {}): AsyncGenerator<AiStreamEvent, void, void> {
+    this.#assertMutable();
+    this.#started = true;
+    options.signal?.throwIfAborted();
+
+    const provider = this.#defaults.provider;
+    const modelClient = new ModelClient(provider);
+    const history = await loadHistory(this.#defaults.history?.repository, this.#state.chatId);
+    let usage: Usage = {};
+    let transcript: Transcription | undefined;
+    let userText = this.#state.text;
+
+    if (this.#state.audio !== undefined) {
+      const transcriber = provider.transcription;
       if (transcriber === undefined) {
         throw new UnsupportedCapabilityError('transcription', provider.model);
       }
@@ -275,6 +425,7 @@ export class AiRequest {
         : await openMcpServers(mcpServers, options.signal);
 
     try {
+      yield { chatId: this.#state.chatId, type: 'run.started' };
       const registry = toolRegistry(opened.tools, this.#state.tools);
       let finalResponse: ModelResponse | undefined;
       for (let step = 0; step <= this.#defaults.maxToolSteps; step += 1) {
@@ -284,16 +435,52 @@ export class AiRequest {
           this.#defaults.instructions,
           this.#state.chatId,
         );
-        const response = await modelClient.generate(
-          {
-            messages: requestMessages,
-            model: { model: provider.model, provider: provider.id },
-            ...(registry.definitions.length === 0
-              ? {}
-              : { toolChoice: { type: 'auto' as const }, tools: registry.definitions }),
-          },
-          options,
-        );
+        let response: ModelResponse | undefined;
+        const modelRequest = {
+          ...(this.#defaults.hostedTools.length === 0
+            ? {}
+            : { hostedTools: this.#defaults.hostedTools }),
+          messages: requestMessages,
+          model: { model: provider.model, provider: provider.id },
+          ...(registry.definitions.length === 0 && this.#defaults.hostedTools.length === 0
+            ? {}
+            : { toolChoice: { type: 'auto' as const }, tools: registry.definitions }),
+        };
+        let emittedText = false;
+        try {
+          for await (const event of modelClient.stream(modelRequest, options)) {
+            if (event.type === 'model.text.delta') {
+              emittedText = true;
+              yield { delta: event.delta, type: 'text.delta' };
+            } else if (event.type === 'model.tool_call.completed') {
+              yield { call: event.toolCall, type: 'tool.call' };
+            } else if (event.type === 'model.response.completed') {
+              response = event.response;
+            }
+          }
+        } catch (error) {
+          if (!isAbruptStreamEnd(error)) throw error;
+          if (emittedText) yield { type: 'text.reset' };
+          yield { attempt: 2, type: 'run.retrying' };
+          response = await modelClient.generate(modelRequest, options);
+          const fallbackText = assistantText(response.message);
+          if (fallbackText.length > 0) yield { delta: fallbackText, type: 'text.delta' };
+          for (const call of toolCalls(response.message)) {
+            yield {
+              call: { arguments: call.arguments, id: call.callId, name: call.name },
+              type: 'tool.call',
+            };
+          }
+        }
+        if (response === undefined) {
+          throw new AiError(
+            'malformed_response',
+            'The model stream completed without a response.',
+            {
+              code: 'stream_response_missing',
+            },
+          );
+        }
         finalResponse = response;
         usage = addUsage(usage, response.usage);
         pending.push(response.message);
@@ -318,6 +505,9 @@ export class AiRequest {
             ),
           ),
         );
+        for (const result of results) {
+          yield { callId: result.callId, status: result.status, type: 'tool.result' };
+        }
         pending.push(message(this.#state.chatId, 'tool', results, response.message.id));
       }
       if (finalResponse === undefined) {
@@ -345,14 +535,17 @@ export class AiRequest {
         );
         usage = addUsage(usage, audio.usage);
       }
-      return {
-        ...(audio === undefined ? {} : { audio }),
-        chatId: this.#state.chatId,
-        finishReason: finalResponse.finishReason,
-        message: finalResponse.message,
-        text,
-        ...(transcript === undefined ? {} : { transcript }),
-        usage,
+      yield {
+        result: {
+          ...(audio === undefined ? {} : { audio }),
+          chatId: this.#state.chatId,
+          finishReason: finalResponse.finishReason,
+          message: finalResponse.message,
+          text,
+          ...(transcript === undefined ? {} : { transcript }),
+          usage,
+        },
+        type: 'run.completed',
       };
     } finally {
       await opened.close();
@@ -370,6 +563,14 @@ export class AiRequest {
 
 export function createAiClient(options: CreateAiClientOptions): AiClient {
   return new AiClient(options);
+}
+
+function isAbruptStreamEnd(error: unknown): boolean {
+  return (
+    error instanceof AiError &&
+    error.code === 'invalid_event_sequence' &&
+    error.message === 'The provider stream ended without a terminal event.'
+  );
 }
 
 function normalizeAudio(input: AudioInput): AudioInput {

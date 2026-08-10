@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { randomUUID } from 'node:crypto';
 import type {
   Response,
   ResponseCreateParamsNonStreaming,
@@ -6,7 +7,7 @@ import type {
   ResponseStreamEvent,
 } from 'openai/resources/responses/responses';
 
-import type { OpenAIProviderOptions } from './configuration.js';
+import type { OpenAIProviderOptions, OpenAIWireEvent, OpenAIWireLogger } from './configuration.js';
 
 export interface OpenAITransportCallOptions {
   readonly idempotencyKey?: string;
@@ -27,8 +28,10 @@ export interface OpenAIResponsesTransport {
 
 export class OpenAISdkResponsesTransport implements OpenAIResponsesTransport {
   readonly #client: OpenAI;
+  readonly #wireLogger: OpenAIWireLogger | undefined;
 
   public constructor(options: OpenAIProviderOptions) {
+    this.#wireLogger = options.wireLogger;
     this.#client = new OpenAI({
       ...(options.apiKey === undefined ? {} : { apiKey: options.apiKey }),
       ...(options.baseUrl === undefined ? {} : { baseURL: options.baseUrl }),
@@ -43,14 +46,61 @@ export class OpenAISdkResponsesTransport implements OpenAIResponsesTransport {
     request: ResponseCreateParamsNonStreaming,
     options: OpenAITransportCallOptions,
   ): Promise<Response> {
-    return this.#client.responses.create(request, sdkCallOptions(options));
+    const attemptId = randomUUID();
+    this.#log({ attemptId, operation: 'create', phase: 'request', payload: request });
+    try {
+      const response = await this.#client.responses.create(request, sdkCallOptions(options));
+      this.#log({ attemptId, operation: 'create', phase: 'response', payload: response });
+      return response;
+    } catch (error) {
+      this.#log({ attemptId, operation: 'create', phase: 'error', payload: error });
+      throw error;
+    }
   }
 
   public async stream(
     request: ResponseCreateParamsStreaming,
     options: OpenAITransportCallOptions,
   ): Promise<AsyncIterable<ResponseStreamEvent>> {
-    return this.#client.responses.create(request, sdkCallOptions(options));
+    const attemptId = randomUUID();
+    this.#log({ attemptId, operation: 'stream', phase: 'request', payload: request });
+    try {
+      const stream = await this.#client.responses.create(request, sdkCallOptions(options));
+      this.#log({
+        attemptId,
+        operation: 'stream',
+        phase: 'response',
+        payload: { type: 'stream_opened' },
+      });
+      return this.#wireLogger === undefined ? stream : this.#logStream(stream, attemptId);
+    } catch (error) {
+      this.#log({ attemptId, operation: 'stream', phase: 'error', payload: error });
+      throw error;
+    }
+  }
+
+  async *#logStream(
+    stream: AsyncIterable<ResponseStreamEvent>,
+    attemptId: string,
+  ): AsyncGenerator<ResponseStreamEvent, void, void> {
+    try {
+      for await (const event of stream) {
+        this.#log({ attemptId, operation: 'stream', phase: 'stream_event', payload: event });
+        yield event;
+      }
+    } catch (error) {
+      this.#log({ attemptId, operation: 'stream', phase: 'error', payload: error });
+      throw error;
+    }
+  }
+
+  #log(event: Omit<OpenAIWireEvent, 'at'>): void {
+    if (this.#wireLogger === undefined) return;
+    try {
+      this.#wireLogger({ ...event, at: new Date().toISOString() });
+    } catch {
+      // Diagnostics must never prevent an OpenAI request from completing.
+    }
   }
 }
 

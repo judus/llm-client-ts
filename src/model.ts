@@ -1,5 +1,6 @@
 import type { ConversationMessage } from './message.js';
 import type { JsonObject, JsonSchema } from './json.js';
+import type { HostedTool } from './hosted-tool.js';
 import type { ToolChoice, ToolDefinition } from './tool.js';
 import type { Usage } from './usage.js';
 
@@ -62,6 +63,7 @@ export interface RequestLimits {
 }
 
 export interface ModelRequest {
+  readonly hostedTools?: readonly HostedTool[];
   readonly limits?: RequestLimits;
   readonly messages: readonly ConversationMessage[];
   readonly metadata?: JsonObject;

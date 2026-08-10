@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ResponseStreamEvent } from 'openai/resources/responses/responses';
+import type {
+  ResponseCompletedEvent,
+  ResponseStreamEvent,
+} from 'openai/resources/responses/responses';
 
 import { OpenAISdkResponsesTransport } from '../../../src/providers/openai/transport.js';
 import { completedResponse } from './fixtures.js';
@@ -78,6 +81,89 @@ describe('OpenAISdkResponsesTransport', () => {
       {},
     );
   });
+
+  it('logs the exact request, response, and stream events when wire diagnostics are enabled', async () => {
+    const events: unknown[] = [];
+    const streamEvent = {
+      type: 'response.completed',
+      response: completedResponse,
+      sequence_number: 0,
+    } satisfies ResponseCompletedEvent;
+    mocks.create.mockResolvedValue(iterate([streamEvent]));
+    const transport = new OpenAISdkResponsesTransport({
+      wireLogger: (event) => events.push(event),
+    });
+
+    const stream = await transport.stream(
+      { input: 'trace me', model: 'gpt-5.4', stream: true },
+      {},
+    );
+    await expect(collect(stream)).resolves.toEqual([streamEvent]);
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        operation: 'stream',
+        phase: 'request',
+        payload: { input: 'trace me', model: 'gpt-5.4', stream: true },
+      }),
+      expect.objectContaining({
+        operation: 'stream',
+        phase: 'response',
+        payload: { type: 'stream_opened' },
+      }),
+      expect.objectContaining({ operation: 'stream', phase: 'stream_event', payload: streamEvent }),
+    ]);
+  });
+
+  it('logs transport failures without replacing the original error', async () => {
+    const events: unknown[] = [];
+    const failure = new Error('connection lost');
+    mocks.create.mockRejectedValue(failure);
+    const transport = new OpenAISdkResponsesTransport({
+      wireLogger: (event) => events.push(event),
+    });
+
+    await expect(
+      transport.create({ input: 'trace failure', model: 'gpt-5.4', stream: false }, {}),
+    ).rejects.toBe(failure);
+    expect(events).toEqual([
+      expect.objectContaining({ operation: 'create', phase: 'request' }),
+      expect.objectContaining({ operation: 'create', phase: 'error', payload: failure }),
+    ]);
+  });
+
+  it('logs completed non-streaming responses', async () => {
+    const events: unknown[] = [];
+    mocks.create.mockResolvedValue(completedResponse);
+    const transport = new OpenAISdkResponsesTransport({
+      wireLogger: (event) => events.push(event),
+    });
+
+    await expect(
+      transport.create({ input: 'trace response', model: 'gpt-5.4', stream: false }, {}),
+    ).resolves.toBe(completedResponse);
+    expect(events).toEqual([
+      expect.objectContaining({ operation: 'create', phase: 'request' }),
+      expect.objectContaining({
+        operation: 'create',
+        payload: completedResponse,
+        phase: 'response',
+      }),
+    ]);
+  });
+
+  it('never lets a diagnostics callback break a provider request', async () => {
+    mocks.create.mockResolvedValue(completedResponse);
+    const transport = new OpenAISdkResponsesTransport({
+      wireLogger: () => {
+        throw new Error('logger failed');
+      },
+    });
+
+    await expect(
+      transport.create({ input: 'still works', model: 'gpt-5.4', stream: false }, {}),
+    ).resolves.toBe(completedResponse);
+  });
 });
 
 async function* iterate(
@@ -87,4 +173,10 @@ async function* iterate(
     await Promise.resolve();
     yield event;
   }
+}
+
+async function collect<T>(iterable: AsyncIterable<T>): Promise<T[]> {
+  const result: T[] = [];
+  for await (const value of iterable) result.push(value);
+  return result;
 }

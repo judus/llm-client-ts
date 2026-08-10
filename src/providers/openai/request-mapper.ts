@@ -5,6 +5,7 @@ import {
   type ContentPart,
   type DocumentPart,
   type ImagePart,
+  type HostedTool,
   type ModelRequest,
   type ToolDefinition,
 } from '../../index.js';
@@ -73,7 +74,14 @@ function mapBaseRequest(
       : { temperature: request.sampling.temperature }),
     ...(request.sampling?.topP === undefined ? {} : { top_p: request.sampling.topP }),
     ...(request.toolChoice === undefined ? {} : { tool_choice: mapToolChoice(request) }),
-    ...(request.tools === undefined ? {} : { tools: request.tools.map(mapTool) }),
+    ...(request.tools === undefined && request.hostedTools === undefined
+      ? {}
+      : {
+          tools: [
+            ...(request.tools ?? []).map(mapTool),
+            ...(request.hostedTools ?? []).map(mapHostedTool),
+          ],
+        }),
   };
 }
 
@@ -291,6 +299,51 @@ function mapTool(tool: ToolDefinition): Tool {
     strict: true,
     type: 'function',
   };
+}
+
+function mapHostedTool(tool: HostedTool): Tool {
+  if (tool.provider !== 'openai' || tool.type !== 'web_search') {
+    throw new AiError(
+      'unsupported_capability',
+      `OpenAI does not support hosted tool ${tool.provider}.${tool.type}.`,
+      {
+        code: 'openai_hosted_tool_unsupported',
+      },
+    );
+  }
+
+  const configuration = tool.configuration ?? {};
+  const allowedDomains = configuration['allowedDomains'];
+  const searchContextSize = configuration['searchContextSize'];
+  if (allowedDomains !== undefined && !isStringArray(allowedDomains)) {
+    throw new AiError(
+      'invalid_request',
+      'OpenAI web search allowedDomains must be an array of strings.',
+      {
+        code: 'openai_web_search_domains_invalid',
+      },
+    );
+  }
+  if (
+    searchContextSize !== undefined &&
+    searchContextSize !== 'low' &&
+    searchContextSize !== 'medium' &&
+    searchContextSize !== 'high'
+  ) {
+    throw new AiError('invalid_request', 'OpenAI web search searchContextSize is invalid.', {
+      code: 'openai_web_search_context_size_invalid',
+    });
+  }
+
+  return {
+    ...(allowedDomains === undefined ? {} : { filters: { allowed_domains: allowedDomains } }),
+    ...(searchContextSize === undefined ? {} : { search_context_size: searchContextSize }),
+    type: 'web_search',
+  };
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
 }
 
 function mapToolChoice(request: ModelRequest): ToolChoiceFunction | ToolChoiceOptions {

@@ -4,11 +4,14 @@ import {
   createAiClient,
   InMemoryConversationStore,
   type AiChat,
+  type AiStreamEvent,
   type ConfiguredProvider,
   type ConversationMessage,
   type ModelCapabilities,
   type ModelResponse,
+  type ModelStreamEvent,
   type SpeechSynthesisProvider,
+  type ToolCall,
   type TranscriptionProvider,
 } from '../src/index.js';
 import { ScriptedProvider } from '../src/testing/index.js';
@@ -42,6 +45,258 @@ describe('createAiClient', () => {
 
     expect(result.chatId).toMatch(/^[0-9a-f-]{36}$/u);
     expect(provider.requests[0]?.messages.map(({ role }) => role)).toEqual(['developer', 'user']);
+  });
+
+  it('streams text deltas and persists the completed response', async () => {
+    const repository = new InMemoryConversationStore();
+    const finalResponse = response('streamed', 'answer', text('Hello back.'));
+    const provider = configuredProvider([
+      {
+        events: [
+          streamEvent(0, { type: 'model.request.started' }),
+          streamEvent(1, { delta: 'Hello ', outputIndex: 0, type: 'model.text.delta' }),
+          streamEvent(2, { delta: 'back.', outputIndex: 0, type: 'model.text.delta' }),
+          streamEvent(3, { response: finalResponse, type: 'model.response.completed' }),
+        ],
+        type: 'stream',
+      },
+    ]);
+    const events = [];
+    for await (const event of createAiClient({ history: { repository }, provider })
+      .chat('streamed')
+      .user('Hello.')
+      .stream()) {
+      events.push(event);
+    }
+
+    expect(events.map(({ type }) => type)).toEqual([
+      'run.started',
+      'text.delta',
+      'text.delta',
+      'run.completed',
+    ]);
+    expect(events.filter(isTextDelta).map(({ delta }) => delta)).toEqual(['Hello ', 'back.']);
+    await expect(repository.snapshot('streamed')).resolves.toMatchObject({
+      messages: [{ role: 'user' }, { role: 'assistant' }],
+    });
+  });
+
+  it('falls back to buffered generation after an abruptly ended stream', async () => {
+    const repository = new InMemoryConversationStore();
+    const finalResponse = response('retry-stream', 'answer', text('Complete answer.'));
+    const provider = configuredProvider([
+      {
+        events: [
+          streamEvent(0, { type: 'model.request.started' }),
+          streamEvent(1, { delta: 'Partial ', outputIndex: 0, type: 'model.text.delta' }),
+        ],
+        type: 'stream',
+      },
+      {
+        response: finalResponse,
+        type: 'generate',
+      },
+    ]);
+    const events = [];
+    for await (const event of createAiClient({ history: { repository }, provider })
+      .chat('retry-stream')
+      .user('Retry this.')
+      .stream()) {
+      events.push(event);
+    }
+
+    expect(events.map(({ type }) => type)).toEqual([
+      'run.started',
+      'text.delta',
+      'text.reset',
+      'run.retrying',
+      'text.delta',
+      'run.completed',
+    ]);
+    expect(events.filter(isTextDelta).map(({ delta }) => delta)).toEqual([
+      'Partial ',
+      'Complete answer.',
+    ]);
+    await expect(repository.snapshot('retry-stream')).resolves.toMatchObject({
+      messages: [{ role: 'user' }, { content: text('Complete answer.'), role: 'assistant' }],
+    });
+  });
+
+  it('retries an empty abrupt stream without emitting a text reset', async () => {
+    const provider = configuredProvider([
+      {
+        events: [streamEvent(0, { type: 'model.request.started' })],
+        type: 'stream',
+      },
+      {
+        response: response('empty-retry-stream', 'answer', []),
+        type: 'generate',
+      },
+    ]);
+
+    const events = await collectEvents(
+      createAiClient({ provider }).chat('empty-retry-stream').user('Retry.').stream(),
+    );
+
+    expect(events.map(({ type }) => type)).toEqual([
+      'run.started',
+      'run.retrying',
+      'run.completed',
+    ]);
+  });
+
+  it('streams transcribed input and synthesizes the completed answer', async () => {
+    const transcribe = vi.fn<TranscriptionProvider['transcribe']>(async function* () {
+      await Promise.resolve();
+      yield {
+        transcription: { text: 'Report.', usage: { audioInputTokens: 4 } },
+        type: 'transcription.completed',
+      };
+    });
+    const synthesize = vi.fn<SpeechSynthesisProvider['synthesize']>(async () => {
+      await Promise.resolve();
+      return {
+        audio: {
+          mimeType: 'audio/mpeg',
+          source: { bytes: new Uint8Array([1]), type: 'bytes' },
+          type: 'audio',
+        },
+        usage: { characters: 6 },
+      };
+    });
+    const finalResponse = response('voice-stream', 'answer', text('Clear.'));
+    const provider = configuredProvider(
+      [
+        {
+          events: [
+            streamEvent(0, { type: 'model.request.started' }),
+            streamEvent(1, { delta: 'Clear.', outputIndex: 0, type: 'model.text.delta' }),
+            streamEvent(2, { response: finalResponse, type: 'model.response.completed' }),
+          ],
+          type: 'stream',
+        },
+      ],
+      capabilities(),
+      { speechSynthesis: { synthesize }, transcription: { transcribe } },
+    );
+
+    const events = [];
+    const signal = new AbortController().signal;
+    for await (const event of createAiClient({ provider })
+      .chat('voice-stream')
+      .audio({ bytes: new Uint8Array([7]), mimeType: 'audio/webm' })
+      .speak({ voice: 'ash' })
+      .stream({ signal })) {
+      events.push(event);
+    }
+
+    expect(events.at(-1)).toMatchObject({
+      result: {
+        audio: { audio: { mimeType: 'audio/mpeg' } },
+        transcript: { text: 'Report.' },
+        usage: { audioInputTokens: 4, characters: 6, inputTokens: 2, outputTokens: 3 },
+      },
+      type: 'run.completed',
+    });
+    expect(provider.requests[0]?.messages[0]?.content).toEqual([
+      { source: 'transcribed', text: 'Report.', type: 'text' },
+    ]);
+  });
+
+  it('fails clearly when stream media services are unavailable', async () => {
+    const noMediaProvider = configuredProvider([]);
+    await expect(
+      collectEvents(
+        createAiClient({ provider: noMediaProvider })
+          .audio({ bytes: new Uint8Array([1]), mimeType: 'audio/wav' })
+          .stream(),
+      ),
+    ).rejects.toMatchObject({ category: 'unsupported_capability' });
+
+    const finalResponse = response('speech-stream-missing', 'answer', text('No voice.'));
+    const noSpeechProvider = configuredProvider([
+      {
+        events: [
+          streamEvent(0, { type: 'model.request.started' }),
+          streamEvent(1, { response: finalResponse, type: 'model.response.completed' }),
+        ],
+        type: 'stream',
+      },
+    ]);
+    await expect(
+      collectEvents(
+        createAiClient({ provider: noSpeechProvider })
+          .chat('speech-stream-missing')
+          .user('Speak.')
+          .speak()
+          .stream(),
+      ),
+    ).rejects.toMatchObject({ category: 'unsupported_capability' });
+  });
+
+  it('streams MCP calls, results, and the following model answer', async () => {
+    const received: string[] = [];
+    const toolCall: ToolCall = {
+      arguments: { system: 'Sol' },
+      id: 'call-stream',
+      name: 'elite__lookup',
+    };
+    const toolResponse = response(
+      'tool-stream',
+      'tool-call',
+      [
+        {
+          arguments: toolCall.arguments,
+          callId: toolCall.id,
+          name: toolCall.name,
+          type: 'tool_call',
+        },
+      ],
+      'tool_calls',
+    );
+    const finalResponse = response('tool-stream', 'answer', text('Sol found.'));
+    const provider = configuredProvider(
+      [
+        {
+          events: [
+            streamEvent(0, { type: 'model.request.started' }),
+            streamEvent(1, { toolCall, type: 'model.tool_call.completed' }),
+            streamEvent(2, { response: toolResponse, type: 'model.response.completed' }),
+          ],
+          type: 'stream',
+        },
+        {
+          events: [
+            streamEvent(0, { type: 'model.request.started' }),
+            streamEvent(1, { delta: 'Sol found.', outputIndex: 0, type: 'model.text.delta' }),
+            streamEvent(2, { response: finalResponse, type: 'model.response.completed' }),
+          ],
+          type: 'stream',
+        },
+      ],
+      capabilities({ tools: true }),
+    );
+
+    const events = [];
+    for await (const event of createAiClient({
+      mcp: [{ fetch: mcpFetchFixture(received), name: 'elite', url: 'https://mcp.test/mcp' }],
+      provider,
+    })
+      .chat('tool-stream')
+      .user('Find Sol.')
+      .stream()) {
+      events.push(event);
+    }
+
+    expect(events.map(({ type }) => type)).toEqual([
+      'run.started',
+      'tool.call',
+      'tool.result',
+      'text.delta',
+      'run.completed',
+    ]);
+    expect(received).toContain('tools/call');
+    expect(provider.requests[1]?.messages.at(-1)).toMatchObject({ role: 'tool' });
   });
 
   it('supports request-local MCP overrides and every document source', async () => {
@@ -631,6 +886,34 @@ function response(
 
 function text(value: string): ConversationMessage['content'] {
   return [{ source: 'generated', text: value, type: 'text' }];
+}
+
+type StreamEventPayload =
+  | { readonly type: 'model.request.started' }
+  | { readonly delta: string; readonly outputIndex: number; readonly type: 'model.text.delta' }
+  | { readonly toolCall: ToolCall; readonly type: 'model.tool_call.completed' }
+  | { readonly response: ModelResponse; readonly type: 'model.response.completed' };
+
+function streamEvent(sequence: number, payload: StreamEventPayload): ModelStreamEvent {
+  return {
+    eventId: `event-${String(sequence)}`,
+    occurredAt: '2026-08-08T10:00:00.000Z',
+    requestId: 'stream-request',
+    sequence,
+    ...payload,
+  };
+}
+
+function isTextDelta(
+  event: AiStreamEvent,
+): event is { readonly delta: string; readonly type: 'text.delta' } {
+  return event.type === 'text.delta';
+}
+
+async function collectEvents(events: AsyncIterable<AiStreamEvent>): Promise<AiStreamEvent[]> {
+  const collected: AiStreamEvent[] = [];
+  for await (const event of events) collected.push(event);
+  return collected;
 }
 
 function storedMessage(

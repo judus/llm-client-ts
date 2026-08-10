@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/.cache/**', '**/coverage/**', '**/dist/**', '**/node_modules/**'],
+    ignores: ['**/.cache/**', '**/.trash/**', '**/coverage/**', '**/dist/**', '**/node_modules/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,

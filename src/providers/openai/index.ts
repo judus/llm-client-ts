@@ -1,4 +1,5 @@
 export { defaultOpenAIModelCapabilities } from './configuration.js';
+export { openAIWebSearch } from './hosted-tools.js';
 export {
   createOpenAISpeechSynthesisProvider,
   createOpenAITranscriptionProvider,
@@ -7,7 +8,13 @@ export {
 } from './audio-provider.js';
 export { createOpenAIProvider, openAI } from './provider.js';
 
-export type { OpenAIConnectionOptions, OpenAIProviderOptions } from './configuration.js';
+export type {
+  OpenAIConnectionOptions,
+  OpenAIProviderOptions,
+  OpenAIWireEvent,
+  OpenAIWireLogger,
+} from './configuration.js';
+export type { OpenAIWebSearchOptions } from './hosted-tools.js';
 export type { OpenAIClientOptions } from './provider.js';
 export type {
   OpenAISpeechSynthesisProviderDependencies,
