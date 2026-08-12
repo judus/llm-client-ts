@@ -1,6 +1,6 @@
 {
-  "name": "@maduser/ai-ts",
-  "version": "0.0.0",
+  "name": "@judus/llm-client",
+  "version": "0.1.0",
   "description": "Fluent AI client with OpenAI, MCP, conversation history, documents, and voice.",
   "type": "module",
   "sideEffects": false,

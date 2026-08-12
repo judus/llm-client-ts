@@ -3,8 +3,8 @@
 A focused, provider-neutral AI client for Node.js applications.
 
 ```ts
-import { createAiClient } from '@maduser/ai-ts';
-import { openAI } from '@maduser/ai-ts/providers/openai';
+import { createAiClient } from '@judus/llm-client';
+import { openAI } from '@judus/llm-client/providers/openai';
 
 const ai = createAiClient({
   provider: openAI({ apiKey: process.env.OPENAI_API_KEY, model: 'gpt-5.4' }),
@@ -17,9 +17,9 @@ console.log(result.text, result.usage);
 
 ## Entry points
 
-- `@maduser/ai-ts` — fluent client, MCP execution, history, documents, and voice.
-- `@maduser/ai-ts/providers/openai` — OpenAI Responses, transcription, and speech.
-- `@maduser/ai-ts/testing` — deterministic test utilities.
+- `@judus/llm-client` — fluent client, MCP execution, history, documents, and voice.
+- `@judus/llm-client/providers/openai` — OpenAI Responses, transcription, and speech.
+- `@judus/llm-client/testing` — deterministic test utilities.
 
 This is one npm package in one ordinary repository. It intentionally contains no approval system, permission policy, autonomous-agent framework, or workflow engine. The host application owns business authorization and spending decisions; the client reports provider usage.
 
