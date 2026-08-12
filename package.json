@@ -1,6 +1,6 @@
 {
   "name": "@judus/llm-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fluent AI client with OpenAI, MCP, conversation history, documents, and voice.",
   "type": "module",
   "sideEffects": false,
@@ -35,6 +35,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
+    "prepare": "npm run build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
