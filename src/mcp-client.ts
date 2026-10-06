@@ -82,7 +82,7 @@ async function openMcpServer(
 ): Promise<OpenMcpServer> {
   const headers = await resolveHeaders(server.headers);
   const client = new Client(
-    { name: '@jdu/llm-client', version: '0.1.2' },
+    { name: '@jdu/llm-client', version: '0.1.3' },
     { versionNegotiation: { mode: 'auto' } },
   );
   const transport = new StreamableHTTPClientTransport(server.url, {
