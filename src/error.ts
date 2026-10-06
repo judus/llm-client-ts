@@ -50,6 +50,24 @@ export interface SerializedAiError {
   readonly retryable: boolean;
 }
 
+/** An intentionally model-safe usage error. Never include credentials or raw argument values. */
+export class ToolUsageError extends AiError {
+  public constructor(
+    toolName: string,
+    problem: string,
+    correction: string,
+    options: { code?: string; details?: JsonObject } = {},
+  ) {
+    super('tool_validation', `Tool ${toolName}: ${problem} Correction: ${correction}`, {
+      code: options.code ?? 'tool_usage_error',
+      details: { ...options.details, toolName, correction },
+      // Corrected arguments are required; retrying the same call cannot help.
+      retryable: false,
+    });
+    this.name = 'ToolUsageError';
+  }
+}
+
 export function serializeAiError(error: AiError): SerializedAiError {
   return {
     category: error.category,

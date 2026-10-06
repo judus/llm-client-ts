@@ -230,6 +230,7 @@ describe('MCP client integration', () => {
     await expect(tool.execute({}, context())).rejects.toMatchObject({
       code: 'mcp_tool_reported_error',
     });
+    await expect(tool.execute({}, context())).rejects.toThrow('failed');
     await expect(
       tool.execute({}, { ...context(), deadline: new Date(Date.now() - 1).toISOString() }),
     ).rejects.toMatchObject({ code: 'mcp_tool_deadline_exceeded' });

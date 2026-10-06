@@ -1,6 +1,6 @@
 import { Ajv2020, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020.js';
 
-import { AiError } from './error.js';
+import { AiError, ToolUsageError } from './error.js';
 import type { JsonObject, JsonSchema, JsonValue } from './json.js';
 import type { ToolCall, ToolDefinition } from './tool.js';
 import type { ToolResultContentPart } from './content.js';
@@ -151,6 +151,20 @@ function validationError(
   boundary: 'input' | 'output',
   errors: readonly ErrorObject[] | null | undefined,
 ): AiError {
+  if (boundary === 'input') {
+    const issues = (errors ?? []).slice(0, 10).map((error) => ({
+      instancePath: error.instancePath,
+      keyword: error.keyword,
+      correction: correction(error),
+    }));
+    return new ToolUsageError(
+      toolName,
+      'Input validation failed.',
+      issues.map((issue) => `${issue.instancePath || '/'}: ${issue.correction}`).join(' ') +
+        ' Submit corrected arguments matching the tool schema; do not repeat the unchanged call.',
+      { code: 'tool_input_validation_failed', details: { boundary, issues } },
+    );
+  }
   return new AiError('tool_validation', `Tool ${toolName} failed ${boundary} validation.`, {
     code: `tool_${boundary}_validation_failed`,
     details: {
@@ -164,4 +178,29 @@ function validationError(
       toolName,
     },
   });
+}
+
+function correction(error: ErrorObject): string {
+  switch (error.keyword) {
+    case 'additionalProperties':
+      return `Remove unknown argument ${JSON.stringify(error.params['additionalProperty'])}.`;
+    case 'required':
+      return `Supply required argument ${JSON.stringify(error.params['missingProperty'])}.`;
+    case 'type':
+      return `Use type ${String(error.params['type'])}.`;
+    case 'enum':
+      return `Use one of ${JSON.stringify(error.params['allowedValues'])}.`;
+    case 'minimum':
+    case 'maximum':
+    case 'exclusiveMinimum':
+    case 'exclusiveMaximum':
+      return `Use a value ${String(error.params['comparison'])} ${String(error.params['limit'])}.`;
+    case 'minLength':
+    case 'maxLength':
+    case 'minItems':
+    case 'maxItems':
+      return `${error.message ?? 'Check length'} (limit ${String(error.params['limit'])}).`;
+    default:
+      return `${error.message ?? 'Invalid value'}; follow the schema at ${error.schemaPath}.`;
+  }
 }
