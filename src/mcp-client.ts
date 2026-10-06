@@ -82,7 +82,7 @@ async function openMcpServer(
 ): Promise<OpenMcpServer> {
   const headers = await resolveHeaders(server.headers);
   const client = new Client(
-    { name: '@jdu/llm-client', version: '0.1.2' },
+    { name: '@jdu/llm-client', version: '0.1.3' },
     { versionNegotiation: { mode: 'auto' } },
   );
   const transport = new StreamableHTTPClientTransport(server.url, {
@@ -162,10 +162,20 @@ function mapResult(
   toolName: string,
 ): ToolExecutionOutput {
   if (result.isError === true) {
-    throw new AiError('tool_execution', `MCP tool ${toolName} reported an error.`, {
-      code: 'mcp_tool_reported_error',
-      details: { server: server.name, tool: toolName },
-    });
+    // MCP error text is the server's public tool feedback, not a diagnostic cause.
+    const feedback = result.content
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text)
+      .join('\n')
+      .slice(0, 4000);
+    throw new AiError(
+      'tool_execution',
+      `MCP tool ${toolName} reported an error.${feedback ? ` ${feedback}` : ''}`,
+      {
+        code: 'mcp_tool_reported_error',
+        details: { server: server.name, tool: toolName },
+      },
+    );
   }
   const structuredContent =
     result.structuredContent === undefined

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import { openMcpServers, type McpServer } from '../src/mcp-client.js';
@@ -14,6 +16,37 @@ interface McpFixtureOptions {
 }
 
 describe('MCP client integration', () => {
+  it('advertises the released package version in its MCP handshake', async () => {
+    const requests: unknown[] = [];
+    const opened = await openMcpServers([
+      {
+        name: 'fixture',
+        url: 'https://fixture.test',
+        fetch: fixtureFetch({
+          onRequest: (method, init) => {
+            if (method === 'initialize' && typeof init?.body === 'string')
+              requests.push(JSON.parse(init.body));
+          },
+        }),
+      },
+    ]);
+    const manifest: unknown = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    );
+    if (
+      typeof manifest !== 'object' ||
+      manifest === null ||
+      !('version' in manifest) ||
+      typeof manifest.version !== 'string'
+    )
+      throw new Error('Expected package version.');
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      params: { clientInfo: { name: '@jdu/llm-client', version: manifest.version } },
+    });
+    await opened.close();
+  });
+
   it('derives a namespace, resolves headers, maps schemas, and converts every result content type', async () => {
     const authorizations: (string | null)[] = [];
     const headers = vi.fn(async () => {
@@ -219,20 +252,25 @@ describe('MCP client integration', () => {
   });
 
   it('does not replay remote tool errors and enforces the execution deadline', async () => {
+    const onRequest = vi.fn();
     const fetch = fixtureFetch({
       callResult: { content: [{ text: 'failed', type: 'text' }], isError: true },
+      onRequest,
     });
     const opened = await openMcpServers([{ fetch, name: 'fixture', url: 'https://fixture.test' }]);
     const tool = opened.tools[0];
     if (tool === undefined) {
       throw new Error('Expected discovered tool.');
     }
-    await expect(tool.execute({}, context())).rejects.toMatchObject({
+    const execution = tool.execute({}, context());
+    await expect(execution).rejects.toMatchObject({
       code: 'mcp_tool_reported_error',
     });
+    await expect(execution).rejects.toThrow('failed');
     await expect(
       tool.execute({}, { ...context(), deadline: new Date(Date.now() - 1).toISOString() }),
     ).rejects.toMatchObject({ code: 'mcp_tool_deadline_exceeded' });
+    expect(onRequest.mock.calls.filter(([method]) => method === 'tools/call')).toHaveLength(1);
     await opened.close();
   });
 

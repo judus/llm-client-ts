@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   ToolRegistry,
+  ToolUsageError,
   type AiError,
   type LocalTool,
   type ToolCall,
@@ -38,6 +39,82 @@ function context(signal: AbortSignal = new AbortController().signal): ToolExecut
 }
 
 describe('ToolRegistry', () => {
+  it('supports explicit domain correction errors', () => {
+    const error = new ToolUsageError(
+      'lookup',
+      'Ambiguous identifier.',
+      'Supply the full identifier.',
+    );
+    expect(error.code).toBe('tool_usage_error');
+    expect(error.details?.['correction']).toBe('Supply the full identifier.');
+    expect(error.message).toContain('Supply the full identifier.');
+    expect(error.retryable).toBe(false);
+  });
+
+  it('points to the schema for other validation constraints', () => {
+    const registry = new ToolRegistry([
+      {
+        definition: {
+          ...definition,
+          inputSchema: {
+            type: 'object',
+            properties: { id: { type: 'string', pattern: '^a' } },
+          },
+        },
+        execute: () => ({}),
+      },
+    ]);
+    expect(() => {
+      registry.validate({ ...call, arguments: { id: 'b' } });
+    }).toThrow('follow the schema at #/properties/id/pattern');
+  });
+  it('gives correction hints without echoing supplied values', async () => {
+    const execute = vi.fn(() => ({}));
+    const registry = new ToolRegistry([{ definition, execute }]);
+    await expect(
+      registry.execute({ ...call, arguments: { maxDistance: 'secret-value' } }, context()),
+    ).rejects.toMatchObject({
+      name: 'ToolUsageError',
+      retryable: false,
+    });
+    try {
+      registry.validate({ ...call, arguments: { id: 'secret-value' } });
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      expect(error.message).toContain('/id: Use type integer');
+      expect(JSON.stringify(error)).not.toContain('secret-value');
+    }
+    expect(execute).not.toHaveBeenCalled();
+    expect(() => {
+      registry.validate({ ...call, arguments: { maxDistance: 500 } });
+    }).toThrow(/Supply required argument "id".*Remove unknown argument "maxDistance"/);
+  });
+
+  it('explains enum choices, numeric bounds, and string length constraints', () => {
+    const registry = new ToolRegistry([
+      {
+        definition: {
+          ...definition,
+          inputSchema: {
+            type: 'object',
+            properties: {
+              service: { type: 'string', enum: ['refuel', 'repair'] },
+              limit: { type: 'integer', minimum: 1, maximum: 20 },
+              query: { type: 'string', minLength: 1, maxLength: 5 },
+            },
+          },
+        },
+        execute: () => ({}),
+      },
+    ]);
+    expect(() => {
+      registry.validate({ ...call, arguments: { service: 'wrong', limit: 21, query: '' } });
+    }).toThrow(/Use one of.*refuel.*repair.*Use a value <= 20.*limit 1/);
+    expect(() => {
+      registry.validate({ ...call, arguments: { limit: 0, query: 'too long' } });
+    }).toThrow(/Use a value >= 1.*limit 5/);
+  });
+
   it('validates input before calling an executor and validates structured output', async () => {
     const execute = vi.fn(() => ({ structuredContent: { value: 'answer' } }));
     const registry = new ToolRegistry([{ definition, execute }]);

@@ -1,6 +1,6 @@
 {
   "name": "@jdu/llm-client",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Fluent AI client with OpenAI, MCP, conversation history, documents, and voice.",
   "type": "module",
   "sideEffects": false,

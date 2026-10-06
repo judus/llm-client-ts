@@ -1,6 +1,6 @@
 export { AiClient, AiChat, AiRequest, createAiClient } from './fluent-client.js';
 export { ModelClient } from './client.js';
-export { AiError, UnsupportedCapabilityError, serializeAiError } from './error.js';
+export { AiError, ToolUsageError, UnsupportedCapabilityError, serializeAiError } from './error.js';
 export { InMemoryConversationStore } from './conversation-store.js';
 export { CharacterTokenEstimator, PairSafeHistorySelector } from './context-selection.js';
 export { reduceModelStream } from './reduce-stream.js';

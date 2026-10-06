@@ -23,6 +23,18 @@ console.log(result.text, result.usage);
 
 This is one npm package in one ordinary repository. It intentionally contains no approval system, permission policy, autonomous-agent framework, or workflow engine. The host application owns business authorization and spending decisions; the client reports provider usage.
 
+## Tool correction feedback
+
+Input schema errors identify the invalid field and give correction instructions.
+Handlers can also throw `new ToolUsageError(toolName, problem, correction)` for
+domain-specific usage mistakes. Its message reaches the model and conversation
+history; never include credentials, raw argument values, or internal diagnostics.
+`retryable: false` means the same call must not be retried unchanged; the model
+may submit corrected arguments. This does not authorize automatic side-effect retries.
+
+MCP error text is preserved as untrusted tool feedback, bounded to 4000 characters.
+Servers must send only intentionally public messages, not raw exception stacks.
+
 ## Requirements
 
 - Node.js 24 or newer.
